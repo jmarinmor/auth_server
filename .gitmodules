@@ -1,0 +1,6 @@
+[submodule "submodules/jcore"]
+	path = submodules/jcore
+	url = https://github.com/jmarinmor/jcore.git
+[submodule "submodules/protonet"]
+	path = submodules/protonet
+	url = https://github.com/jmarinmor/protonet.git

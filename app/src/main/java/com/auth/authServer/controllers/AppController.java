@@ -2,7 +2,6 @@ package com.auth.authServer.controllers;
 
 import com.auth.authServer.model.Application;
 import com.auth.interop.Captcha;
-import com.auth.interop.App;
 import com.google.gson.Gson;
 import org.springframework.web.bind.annotation.*;
 

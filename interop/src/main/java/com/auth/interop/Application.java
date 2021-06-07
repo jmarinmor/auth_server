@@ -3,10 +3,14 @@ package com.auth.interop;
 import java.util.UUID;
 
 public class Application {
+    public enum RegistryMode {
+        OWNER_VERIFICATION,
+        USER_INVITATION,
+        USER_VERIFICATION
+    }
     public UUID owner;
-    public UUID  gid;
+    public UUID gid;
     public String name;
-    public boolean useOwnerVerificationMail;
-    public boolean useUserVerificationMail;
+    public RegistryMode registryMode;
     public String appPublicKey;
 }

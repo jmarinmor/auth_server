@@ -107,7 +107,7 @@ public class UserController {
     }
 
     @PostMapping(value = "/register_in_app")
-    public Registration.Response verifyHumanCallback(@RequestBody @NonNull Registration registration) {
+    public Registration.Response verifyHumanCallback2(@RequestBody @NonNull Registration registration) {
         Registration.Response ret = new Registration.Response();
 
         try (PrivateDatabase db = Application.getDatabase()) {
@@ -125,6 +125,7 @@ public class UserController {
 
     @PostMapping(value = "/login")
     public UserLogin.Response loginCallback(@RequestBody @NonNull UserLogin login) {
+        /*
         UserLogin.Response response = new UserLogin.Response();
         try (PrivateDatabase db = Application.getDatabase()) {
             if (login.inquiry != null) {
@@ -151,5 +152,8 @@ public class UserController {
             e.printStackTrace();
         }
         return response;
+
+         */
+        return null;
     }
 }

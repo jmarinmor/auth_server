@@ -7,14 +7,6 @@ import com.auth.interop.UserStatus;
 import java.util.UUID;
 
 public interface AuthDatabase extends AutoCloseable {
-    Captcha demandNewCaptcha();
-    boolean verifyCaptcha(String key, String value);
-    int getUserCount();
-    Long addUser(User.Data user);
-    void verifyUser(String emailCode, String phoneCode);
-    boolean loginByPasword(String password);
-    User.Record getUserWithEmailHash(String hash);
-
 
     UserStatus getUserStatus(Long id, UUID gid);
     UserStatus getUserStatusByInquiryKey(String key);

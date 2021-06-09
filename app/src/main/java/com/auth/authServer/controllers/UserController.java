@@ -1,5 +1,6 @@
 package com.auth.authServer.controllers;
 
+import com.auth.authServer.PrivateDatabase;
 import com.auth.authServer.model.Application;
 import com.auth.authServer.model.AuthDatabase;
 import com.auth.interop.*;
@@ -58,7 +59,7 @@ public class UserController {
     public VerifyHuman.Response verifyHumanCallback(@RequestBody @NonNull VerifyHuman verifyHuman) {
         VerifyHuman.Response ret = new VerifyHuman.Response();
 
-        try (AuthDatabase db = Application.getDatabase()) {
+        try (PrivateDatabase db = Application.getDatabase()) {
             if (verifyHuman.reason == VerifyHuman.Reason.REGISTRY) {
                 Captcha captcha = Captcha.newInstance(Application.DEBUG_MODE);
                 if (Application.DEBUG_MODE) {
@@ -67,17 +68,7 @@ public class UserController {
                 }
                 ret.inquiry = captcha.getInquiry();
                 ret.captchaImage = captcha.image;
-
-                String private_key = null;
-                UserStatus status = new UserStatus();
-                User user = new User();
-                user.gid = UUID.randomUUID();
-                status.userGlobalId = user.gid;
-                status.userData = db.encodeUser(user, private_key);
-                status.state = UserStatus.State.WAITING_HUMAN_VERIFICATION;
-                status.inquiry = ret.inquiry;
-                status.privateKey = private_key;
-                db.setUserStatus(status);
+                db.registerHumanVerificationInquiry(captcha);
             }
 
         } catch (Exception e) {
@@ -102,73 +93,42 @@ public class UserController {
     public Registration.Response verifyHumanCallback(@RequestBody @NonNull Registration registration) {
         Registration.Response ret = new Registration.Response();
 
-        try (AuthDatabase db = Application.getDatabase()) {
-            if (registration.inquiry != null) {
-                UserStatus status = db.getUserStatusByInquiryKey(registration.inquiry.inquiry);
-                if (status != null) {
-                    if (status.state == UserStatus.State.WAITING_HUMAN_VERIFICATION) {
-                        User user = db.decodeUser(status.userData, status.privateKey);
-                        if (user != null) {
-                            performRegistryRequest(user, status, db, registration);
-                            ret.succeded = true;
-                        }
-                    }
-
-                }
-            } else {
-                Registration.PreferedRagistrationMode mode = getPreferedRegistrationMode(registration);
-                if (mode == Registration.PreferedRagistrationMode.PHONE) {
-                    User user = new User();
-                    user.gid = UUID.randomUUID();
-                    UserStatus status = new UserStatus();
-                    status.userGlobalId = user.gid;
-                    performRegistryRequest(user, status, db, registration);
-                    ret.succeded = true;
-                }
-            }
+        try (PrivateDatabase db = Application.getDatabase()) {
+            PrivateDatabase.Validator validator = new PrivateDatabase.Validator();
+            validator.inquiry = registration.inquiry;
+            validator.mail = registration.mail;
+            validator.phone = registration.phone;
+            validator.password = registration.password;
+            ret.succeded = db.sendValidationInquiry(validator);
         } catch (Exception e) {
             e.printStackTrace();
         }
         return ret;
     }
 
-    private static void performRegistryRequest(User user, UserStatus status, AuthDatabase db, Registration registration) {
-        user.mail = registration.mail;
-        user.phone = registration.phone;
-        user.password = registration.password;
-        user.name = registration.name;
+    @PostMapping(value = "/register_in_app")
+    public Registration.Response verifyHumanCallback(@RequestBody @NonNull Registration registration) {
+        Registration.Response ret = new Registration.Response();
 
-        UserStatus status = new UserStatus();
-        status.state = UserStatus.State.WAITING_RESPONSE_FOR_LOGIN;
-        status.userData = db.encodeUser(user, status.privateKey);
-        status.inquiry = Inquiry.generateNewInquiry();
-
-        Registration.PreferedRagistrationMode mode = getPreferedRegistrationMode(registration);
-        switch (mode) {
-            case MAIL:
-                sendInquiryMail(user.mail, user, status.inquiry);
-                db.setUserStatus(status);
-                break;
-            case PHONE:
-                sendInquirySMS(user.phone, user, status.inquiry);
-                db.setUserStatus(status);
-                break;
+        try (PrivateDatabase db = Application.getDatabase()) {
+            PrivateDatabase.Validator validator = new PrivateDatabase.Validator();
+            validator.inquiry = registration.inquiry;
+            validator.mail = registration.mail;
+            validator.phone = registration.phone;
+            validator.password = registration.password;
+            ret.succeded = db.sendValidationInquiry(validator);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
+        return ret;
     }
 
-    private static void sendInquirySMS(String mail, User user, Inquiry inquiry) {
-
-    }
-
-    private static void sendInquiryMail(String phone, User user, Inquiry inquiry) {
-
-    }
-
-    @PostMapping(value = "/login/{user}")
+    @PostMapping(value = "/login")
     public UserLogin.Response loginCallback(@RequestBody @NonNull UserLogin login) {
         UserLogin.Response response = new UserLogin.Response();
-        try (AuthDatabase db = Application.getDatabase()) {
+        try (PrivateDatabase db = Application.getDatabase()) {
             if (login.inquiry != null) {
+
                 UserStatus status = db.getUserStatusByInquiryKey(login.inquiry.inquiry);
                 if (status != null) {
                     if (status.inquiry.checkValidation(status.inquiry.desiredResult)) {

@@ -6,6 +6,11 @@ import java.util.Random;
 import java.util.UUID;
 
 public class Inquiry {
+    public enum Reason {
+        HUMAN_VERIFICATION,
+        RESPONSE_FOR_LOGIN
+    }
+
     private static final Random mRandom = new Random();
 
     public String inquiry;

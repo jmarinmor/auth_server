@@ -12,6 +12,7 @@ import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 
 public class CipherUtils {
+
     public enum Algorithm {
         RSA("RSA");
 
@@ -52,6 +53,13 @@ public class CipherUtils {
         String key64 = Base64.getEncoder().encodeToString(data);
         return key64;
     }
+
+    public static Cipher generateDecrypterFromBase64PrivateKey(String privateKey, Algorithm algorithm) throws Exception {
+        byte[] privateKeyBytes = Base64.getDecoder().decode(privateKey);
+        PrivateKey pk = newPrivateKeyFromBytes(privateKeyBytes, algorithm);
+        return getEncrypter(algorithm, pk);
+    }
+
 
     public static void save1(PublicKey publicKey) throws Exception {
         try (FileOutputStream fos = new FileOutputStream("public.key")) {

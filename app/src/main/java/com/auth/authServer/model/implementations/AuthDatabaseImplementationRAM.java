@@ -2,11 +2,11 @@ package com.auth.authServer.model.implementations;
 
 import com.auth.interop.*;
 import com.auth.authServer.model.AuthDatabase;
-import com.auth.interop.contents.AddUserField;
-import com.auth.interop.contents.GenerateAdminKeys;
-import com.auth.interop.contents.SetAdminPrivateKey;
-import com.auth.interop.contents.SetPanicPublicKey;
+import com.auth.interop.contents.*;
 import com.auth.interop.requests.RegistrationRequest;
+
+import java.security.KeyPair;
+import java.util.UUID;
 
 public class AuthDatabaseImplementationRAM implements AuthDatabase {
 
@@ -23,7 +23,12 @@ public class AuthDatabaseImplementationRAM implements AuthDatabase {
     }
 
     @Override
-    public ErrorCode setPanicPublicKeys(SetPanicPublicKey value) {
+    public ErrorCode setPanicPublicKeys(EncryptedContent<SetPanicPublicKey> value) {
+        return null;
+    }
+
+    @Override
+    public ErrorCode setAlive(SetAlive value) {
         return null;
     }
 
@@ -33,27 +38,22 @@ public class AuthDatabaseImplementationRAM implements AuthDatabase {
     }
 
     @Override
-    public ErrorCode setAdminPrivateKey(SetAdminPrivateKey value) {
+    public ErrorCode setAdminPublicKey(EncryptedContent<SetAdminPrivateKey> value) {
         return null;
     }
 
     @Override
-    public byte[] generateAdminKeys(GenerateAdminKeys value) {
-        return new byte[0];
-    }
-
-    @Override
-    public <T> T decipherByAdminKey(byte[] data, Class<T> aClass) {
-        return null;
-    }
-
-    @Override
-    public ErrorCode addUserField(AddUserField value) {
+    public ErrorCode addUserField(EncryptedContent<AddUserField> content) {
         return null;
     }
 
     @Override
     public UserFields getUserFields() {
+        return null;
+    }
+
+    @Override
+    public KeyPair generateKeyPair(EncryptedContent<GenerateKeyPair> value) {
         return null;
     }
 
@@ -73,7 +73,7 @@ public class AuthDatabaseImplementationRAM implements AuthDatabase {
     }
 
     @Override
-    public ErrorCode verifyUser(Validator validator) {
+    public UUID verifyUser(Validator validator) {
         return null;
     }
 

@@ -8,5 +8,6 @@ public class Validator {
     public String phone;
     public String password;
     public Inquiry inquiry;
+    public Inquiry debugForceInternalInquiry;
     public byte[] publicKey;
 }

@@ -1,20 +1,27 @@
 package com.auth.interop;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
 public class User {
-    String NAME_FIELD = "name";
-    String VOID_STRING = "";
+    public static final String NAME_FIELD = "name";
+    public static final String VOID_STRING = "";
+
+    public enum Type {
+        USER,
+        APPLICATION
+    }
 
     public UUID id;
+    public Type type;
     public Map<String, String> values;
+    public String publicKey;
 
     // Application data
     public Set<String> appFields;
     public String appCode;
-    public byte[] appPublicKey;
 
     public String getNameField() {
         return getUserField(NAME_FIELD);
@@ -29,4 +36,10 @@ public class User {
         return ret;
     }
 
+    public User setName(String name) {
+        if (values == null)
+            values = new HashMap<>();
+        values.put(NAME_FIELD, name);
+        return this;
+    }
 }

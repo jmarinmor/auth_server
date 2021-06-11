@@ -22,7 +22,7 @@ public class OwnerController {
         SetPanicPublicKeyRequest.Response ret = new SetPanicPublicKeyRequest.Response();
 
         try (AuthDatabase db = Application.getDatabase()) {
-            ret.errorCode = db.setPanicPublicKeys(request.content);
+            ret.errorCode = db.setPanicPublicKeys(request);
         } catch (Exception e) {
             e.printStackTrace();
         }

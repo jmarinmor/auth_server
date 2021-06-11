@@ -1,11 +1,9 @@
 package com.auth.interop.contents;
 
 public class SetPanicPublicKey {
-    public static class Content {
-        public String fieldName;
+    public String fieldName;
+
+    public SetPanicPublicKey(String fieldName) {
+        this.fieldName = fieldName;
     }
-
-    // Base64
-    public String content;
-
 }

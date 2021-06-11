@@ -1,12 +1,10 @@
 package com.auth.interop.contents;
 
-import java.util.Date;
-
 public class SetAdminPrivateKey {
-    public static class Content {
-        public byte[] key;
-    }
+    // In base64
+    public String key;
 
-    // Base64
-    public String content;
+    public SetAdminPrivateKey(String key) {
+        this.key = key;
+    }
 }

@@ -17,6 +17,14 @@ public class Captcha extends Inquiry {
         return ret;
     }
 
+    public static Captcha newInstance(boolean debugMode, String key, String value) {
+        Captcha ret = new Captcha();
+        ret.inquiry = key;
+        if (debugMode)
+            ret.desiredResult = value;
+        return ret;
+    }
+
     protected static String generateCaptcha(int size) {
 
 //        char data[] = { 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k',

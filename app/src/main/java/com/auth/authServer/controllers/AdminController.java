@@ -6,12 +6,14 @@ import com.auth.interop.ErrorCode;
 import com.auth.interop.requests.AddUserFieldRequest;
 import com.auth.interop.requests.GenerateAdminKeysRequest;
 import com.auth.interop.requests.SetAdminPrivateKeyRequest;
+import com.auth.interop.utils.CipherUtils;
 import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.security.KeyPair;
 import java.util.Base64;
 
 @RestController
@@ -23,7 +25,7 @@ public class AdminController {
         SetAdminPrivateKeyRequest.Response ret = new SetAdminPrivateKeyRequest.Response();
 
         try (AuthDatabase db = Application.getDatabase()) {
-            ret.errorCode = db.setAdminPrivateKey(request.content);
+            ret.errorCode = db.setAdminPublicKey(request);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -35,10 +37,12 @@ public class AdminController {
         GenerateAdminKeysRequest.Response ret = new GenerateAdminKeysRequest.Response();
 
         try (AuthDatabase db = Application.getDatabase()) {
-            byte[] key = db.generateAdminKeys(request.content);
-            if (key != null) {
-                String skey = Base64.getEncoder().encodeToString(key);
-                ret.response = new GenerateAdminKeysRequest.Response.Content(skey);
+            KeyPair pair = db.generateKeyPair(request);
+            if (pair != null) {
+                ret.response = new GenerateAdminKeysRequest.Response.Content(
+                        CipherUtils.getPublicKeyInBase64(pair),
+                        CipherUtils.getPrivateKeyInBase64(pair)
+                );
                 ret.errorCode = ErrorCode.SUCCEDED;
             } else {
                 ret.errorCode = ErrorCode.INVALID_PARAMS;
@@ -55,7 +59,7 @@ public class AdminController {
 
         try (AuthDatabase db = Application.getDatabase()) {
             //byte[] value = Base64.getUrlDecoder().decode(request.addFieldObject);
-            ret.errorCode = db.addUserField(request.content);
+            ret.errorCode = db.addUserField(request);
         } catch (Exception e) {
             e.printStackTrace();
         }

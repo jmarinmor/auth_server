@@ -1,10 +1,12 @@
 package com.auth.interop;
 
+import com.auth.interop.contents.EncryptedContent;
+
 import java.util.Date;
 import java.util.Map;
 
 public class Token {
-    public static class User {
+    public static class UserData {
         public String applicationCode;
         public String applicationName;
         public Map<String, String> values;
@@ -12,9 +14,5 @@ public class Token {
     }
 
     public String serverPublicKeyName;
-    public byte[] userData;
-
-    public User decypherUser(byte[] serverPublicKey) {
-        return null;
-    }
+    public EncryptedContent<UserData> userData;
 }

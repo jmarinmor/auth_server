@@ -16,6 +16,14 @@ public class Inquiry {
     public String inquiry;
     public String desiredResult;
 
+    public Inquiry() {
+    }
+
+    public Inquiry(String inquiry, String desiredResult) {
+        this.inquiry = inquiry;
+        this.desiredResult = desiredResult;
+    }
+
     public static Inquiry generateNewInquiry() {
         Inquiry ret = new Inquiry();
         ret.inquiry = UUID.randomUUID().toString();

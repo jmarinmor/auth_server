@@ -5,11 +5,11 @@ import com.auth.authServer.model.Application;
 import com.auth.interop.ErrorCode;
 import com.auth.interop.Validator;
 import com.auth.interop.*;
-import com.auth.interop.requests.RegistrationRequest;
-import com.auth.interop.requests.UpdateUserRequest;
-import com.auth.interop.requests.VerifyHumanRequest;
+import com.auth.interop.requests.*;
 import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/users")
@@ -62,16 +62,23 @@ public class UserController {
     // This function finally activate an account
     // Needs: the response generated in register
     @PostMapping(value = "/verify")
-    public RegistrationRequest.Response verifyAccountCallback(@RequestBody @NonNull RegistrationRequest registrationRequest) {
-        RegistrationRequest.Response ret = new RegistrationRequest.Response();
+    public RequestResponse<VerifyUser.Response> verifyAccountCallback(@RequestBody @NonNull VerifyUser request) {
+        RequestResponse<VerifyUser.Response> ret = new RequestResponse<>();
 
         try (AuthDatabase db = Application.getDatabase()) {
             Validator validator = new Validator();
-            validator.inquiry = registrationRequest.inquiry;
-            validator.mail = registrationRequest.mail;
-            validator.phone = registrationRequest.phone;
-            validator.password = registrationRequest.password;
-            ret.errorCode = db.verifyUser(validator);
+            validator.inquiry = request.inquiry;
+            validator.mail = request.mail;
+            validator.phone = request.phone;
+            validator.password = request.password;
+            UUID id = db.verifyUser(validator);
+            if (id != null) {
+                ret.response = new VerifyUser.Response(id);
+                ret.errorCode = ErrorCode.SUCCEDED;
+            } else {
+                ret.errorCode = ErrorCode.INVALID_USER;
+            }
+
         } catch (Exception e) {
             e.printStackTrace();
         }

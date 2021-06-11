@@ -1,4 +1,4 @@
-package com.auth.authServer.model.internal;
+package com.auth.interop.utils;
 
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;

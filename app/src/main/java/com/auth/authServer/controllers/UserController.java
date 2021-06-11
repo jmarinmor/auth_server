@@ -1,66 +1,28 @@
 package com.auth.authServer.controllers;
 
-import com.auth.authServer.PrivateDatabase;
-import com.auth.authServer.model.Application;
 import com.auth.authServer.model.AuthDatabase;
+import com.auth.authServer.model.Application;
+import com.auth.interop.ErrorCode;
+import com.auth.interop.Validator;
 import com.auth.interop.*;
-import org.apache.commons.lang3.StringUtils;
+import com.auth.interop.requests.RegistrationRequest;
+import com.auth.interop.requests.UpdateUserRequest;
+import com.auth.interop.requests.VerifyHumanRequest;
 import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/users")
 public class UserController {
-    public static class UserLogin {
-        public static class Response {
-            public boolean succeded;
-        }
 
-        public String application;
-        public String mail;
-        public String password;
-        public Inquiry inquiry;
-    }
-
-    public static class VerifyHuman {
-        public enum Reason {
-            REGISTRY
-        }
-        public static class Response {
-            public Inquiry inquiry;
-            public String captchaImage;
-        }
-        public Reason reason;
-    }
-
-    public static class Registration {
-        public enum PreferedRagistrationMode {
-            NOT_AVAILABLE,
-            MAIL,
-            PHONE
-        }
-        public static class Response {
-            public boolean succeded;
-        }
-
-        public Inquiry inquiry;
-        public String name;
-        public String phone;
-        public String mail;
-        public String password;
-        public PreferedRagistrationMode preferedRagistrationMode;
-    }
-
-    // TODO: 7/6/21 Bane bad ip VERY IMPORTANT!!!!!
+    // TODO: 7/6/21 Bane attacking ip VERY IMPORTANT!!!!!
 
     @PostMapping(value = "/prepare_captcha")
-    public VerifyHuman.Response verifyHumanCallback(@RequestBody @NonNull VerifyHuman verifyHuman) {
-        VerifyHuman.Response ret = new VerifyHuman.Response();
+    public VerifyHumanRequest.Response verifyHumanCallback(@RequestBody @NonNull VerifyHumanRequest verifyHumanRequest) {
+        VerifyHumanRequest.Response ret = new VerifyHumanRequest.Response();
 
-        try (PrivateDatabase db = Application.getDatabase()) {
-            if (verifyHuman.reason == VerifyHuman.Reason.REGISTRY) {
+        try (AuthDatabase db = Application.getDatabase()) {
+            if (verifyHumanRequest.reason == VerifyHumanRequest.Reason.REGISTRY) {
                 Captcha captcha = Captcha.newInstance(Application.DEBUG_MODE);
                 if (Application.DEBUG_MODE) {
                     System.out.println("SERVICE: users/verifyHuman");
@@ -77,83 +39,78 @@ public class UserController {
         return ret;
     }
 
-    private static Registration.PreferedRagistrationMode getPreferedRegistrationMode(Registration registration) {
-        if (registration.preferedRagistrationMode != null) {
-            return registration.preferedRagistrationMode;
-        } else {
-            if (registration.phone != null)
-                return Registration.PreferedRagistrationMode.PHONE;
-            if (registration.mail != null)
-                return Registration.PreferedRagistrationMode.MAIL;
-        }
-        return Registration.PreferedRagistrationMode.NOT_AVAILABLE;
-    }
-
+    // This function send a code to user
+    // Needs: the response generated in prepare_captcha
     @PostMapping(value = "/register")
-    public Registration.Response verifyHumanCallback(@RequestBody @NonNull Registration registration) {
-        Registration.Response ret = new Registration.Response();
+    public RegistrationRequest.Response registerAccountCallback(@RequestBody @NonNull RegistrationRequest registrationRequest) {
+        RegistrationRequest.Response ret = new RegistrationRequest.Response();
 
-        try (PrivateDatabase db = Application.getDatabase()) {
-            PrivateDatabase.Validator validator = new PrivateDatabase.Validator();
-            validator.inquiry = registration.inquiry;
-            validator.mail = registration.mail;
-            validator.phone = registration.phone;
-            validator.password = registration.password;
-            ret.succeded = db.sendValidationInquiry(validator);
+        try (AuthDatabase db = Application.getDatabase()) {
+            Validator validator = new Validator();
+            validator.inquiry = registrationRequest.inquiry;
+            validator.mail = registrationRequest.mail;
+            validator.phone = registrationRequest.phone;
+            validator.password = registrationRequest.password;
+            // this functions send a mail or phone code
+            ret.errorCode = db.sendValidationInquiry(validator);
         } catch (Exception e) {
             e.printStackTrace();
         }
         return ret;
     }
 
-    @PostMapping(value = "/register_in_app")
-    public Registration.Response verifyHumanCallback2(@RequestBody @NonNull Registration registration) {
-        Registration.Response ret = new Registration.Response();
+    // This function finally activate an account
+    // Needs: the response generated in register
+    @PostMapping(value = "/verify")
+    public RegistrationRequest.Response verifyAccountCallback(@RequestBody @NonNull RegistrationRequest registrationRequest) {
+        RegistrationRequest.Response ret = new RegistrationRequest.Response();
 
-        try (PrivateDatabase db = Application.getDatabase()) {
-            PrivateDatabase.Validator validator = new PrivateDatabase.Validator();
-            validator.inquiry = registration.inquiry;
-            validator.mail = registration.mail;
-            validator.phone = registration.phone;
-            validator.password = registration.password;
-            ret.succeded = db.sendValidationInquiry(validator);
+        try (AuthDatabase db = Application.getDatabase()) {
+            Validator validator = new Validator();
+            validator.inquiry = registrationRequest.inquiry;
+            validator.mail = registrationRequest.mail;
+            validator.phone = registrationRequest.phone;
+            validator.password = registrationRequest.password;
+            ret.errorCode = db.verifyUser(validator);
         } catch (Exception e) {
             e.printStackTrace();
         }
         return ret;
     }
 
-    @PostMapping(value = "/login")
-    public UserLogin.Response loginCallback(@RequestBody @NonNull UserLogin login) {
-        /*
-        UserLogin.Response response = new UserLogin.Response();
-        try (PrivateDatabase db = Application.getDatabase()) {
-            if (login.inquiry != null) {
+    @PostMapping(value = "/generate_token")
+    public RegistrationRequest.Response generateTokenCallback(@RequestBody @NonNull RegistrationRequest registrationRequest) {
+        RegistrationRequest.Response ret = new RegistrationRequest.Response();
 
-                UserStatus status = db.getUserStatusByInquiryKey(login.inquiry.inquiry);
-                if (status != null) {
-                    if (status.inquiry.checkValidation(status.inquiry.desiredResult)) {
-                        if (status.state == UserStatus.State.WAITING_RESPONSE_FOR_LOGIN) {
-                            UUID id = status.userGlobalId;
-                            if (id != null) {
-                                // It is a new waiting user
-                                User user = db.decodeUser(status.userData, null);
-                                if (user != null) {
-                                    db.addUser(user);
-                                    response.succeded = true;
-                                }
-                            }
-                        }
-                    }
-                }
-                db.removeUserStatusWithInquiryKey(login.inquiry.inquiry);
-            }
+        try (AuthDatabase db = Application.getDatabase()) {
+            Validator validator = new Validator();
+            validator.inquiry = registrationRequest.inquiry;
+            validator.mail = registrationRequest.mail;
+            validator.phone = registrationRequest.phone;
+            validator.password = registrationRequest.password;
+            ret.response = db.generateTokenForUser(validator);
+            if (ret.response == null || ret.response.userData == null)
+                ret.errorCode = ErrorCode.INVALID_USER;
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return response;
+        return ret;
+    }
 
-         */
-        return null;
+    @PostMapping(value = "/update_user")
+    public UpdateUserRequest.Response updateUserCallback(@RequestBody @NonNull UpdateUserRequest registration) {
+        UpdateUserRequest.Response ret = new UpdateUserRequest.Response();
+
+        try (AuthDatabase db = Application.getDatabase()) {
+            Validator validator = new Validator();
+            validator.inquiry = registration.inquiry;
+            validator.mail = registration.mail;
+            validator.phone = registration.phone;
+            validator.password = registration.password;
+            ret.errorCode = db.updateUser(registration.user, validator);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return ret;
     }
 }

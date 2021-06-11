@@ -28,6 +28,12 @@
 
 	<dependencies>
 		<dependency>
+			<groupId>com.auth.interop</groupId>
+			<artifactId>sharedAuth</artifactId>
+			<version>1.0-SNAPSHOT</version>
+			<scope>compile</scope>
+		</dependency>
+		<dependency>
 			<groupId>com.auth</groupId>
 			<artifactId>authServer</artifactId>
 			<version>0.0.1-SNAPSHOT</version>

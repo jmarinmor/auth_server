@@ -18,7 +18,7 @@ import java.util.UUID;
 
 @SpringBootApplication
 public class AuthServerApplication {
-	private static final boolean TEST_DATABASE = true;
+	private static final boolean TEST_DATABASE = false;
 
 	// Order
 	public static void main(String[] args) {
@@ -189,8 +189,12 @@ public class AuthServerApplication {
 		}
 
 		{
-			Cipher decrypter = CipherUtils.generateDecrypterFromBase64PrivateKey(appPrivateKey, CipherUtils.Algorithm.RSA);
-			Token.UserData user = user_token.userData.getContent(decrypter, Application.getGson());
+			String pk_name = user_token.serverPublicKeyName;
+			NamedPublicKey pk = db.getServerPublicKey(pk_name);
+
+			Cipher decrypter1 = CipherUtils.generateDecrypterFromBase64PublicKey(pk.name, CipherUtils.Algorithm.RSA);
+			Cipher decrypter2 = CipherUtils.generateDecrypterFromBase64PrivateKey(appPrivateKey, CipherUtils.Algorithm.RSA);
+			Token.UserData user = user_token.userData.getContent(decrypter2, decrypter1, Application.getGson());
 			user = null;
 		}
 

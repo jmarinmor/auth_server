@@ -19,6 +19,23 @@ public class EncryptedContent<T> {
         }
     }
 
+    public EncryptedContent<T> setContent(T content, Cipher cipher1, Cipher cipher2, Gson serializer) throws Exception {
+        String json = serializer.toJson(content);
+        byte[] encryptedBytes1 = cipher1.doFinal(json.getBytes());
+        byte[] encryptedBytes2 = cipher2.doFinal(encryptedBytes1);
+        String encryptedBytesInBase64String = Base64.getEncoder().encodeToString(encryptedBytes2);
+        this.content = encryptedBytesInBase64String;
+        return this;
+    }
+
+    public T getContent(Cipher cipher1, Cipher cipher2, Gson serializer) throws Exception {
+        byte[] encryptedBytes = Base64.getDecoder().decode(content);
+        byte[] bytes1 = cipher1.doFinal(encryptedBytes);
+        String json = new String(cipher2.doFinal(bytes1));
+        T obj = serializer.fromJson(json, (Class<T>)mPersistentClass);
+        return obj;
+    }
+
     public EncryptedContent<T> setContent(T content, Cipher cipher, Gson serializer) throws Exception {
         String json = serializer.toJson(content);
         byte[] encryptedBytes = cipher.doFinal(json.getBytes());

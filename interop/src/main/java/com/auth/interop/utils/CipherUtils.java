@@ -54,12 +54,29 @@ public class CipherUtils {
         return key64;
     }
 
-    public static Cipher generateDecrypterFromBase64PrivateKey(String privateKey, Algorithm algorithm) throws Exception {
-        byte[] privateKeyBytes = Base64.getDecoder().decode(privateKey);
-        PrivateKey pk = newPrivateKeyFromBytes(privateKeyBytes, algorithm);
+    public static Cipher generateDecrypterFromBase64PrivateKey(String key, Algorithm algorithm) throws Exception {
+        byte[] keyBytes = Base64.getDecoder().decode(key);
+        PrivateKey pk = newPrivateKeyFromBytes(keyBytes, algorithm);
+        return getDecrypter(algorithm, pk);
+    }
+
+    public static Cipher generateDecrypterFromBase64PublicKey(String key, Algorithm algorithm) throws Exception {
+        byte[] keyBytes = Base64.getDecoder().decode(key);
+        PublicKey pk = newPublicKeyFromBytes(keyBytes, algorithm);
+        return getDecrypter(algorithm, pk);
+    }
+
+    public static Cipher generateEncrypterFromBase64PrivateKey(String key, Algorithm algorithm) throws Exception {
+        byte[] keyBytes = Base64.getDecoder().decode(key);
+        PrivateKey pk = newPrivateKeyFromBytes(keyBytes, algorithm);
         return getEncrypter(algorithm, pk);
     }
 
+    public static Cipher generateEncrypterFromBase64PublicKey(String key, Algorithm algorithm) throws Exception {
+        byte[] keyBytes = Base64.getDecoder().decode(key);
+        PublicKey pk = newPublicKeyFromBytes(keyBytes, algorithm);
+        return getEncrypter(algorithm, pk);
+    }
 
     public static void save1(PublicKey publicKey) throws Exception {
         try (FileOutputStream fos = new FileOutputStream("public.key")) {

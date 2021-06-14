@@ -21,7 +21,7 @@ public class UserController {
     public VerifyHumanRequest.Response verifyHumanCallback(@RequestBody @NonNull VerifyHumanRequest verifyHumanRequest) {
         VerifyHumanRequest.Response ret = new VerifyHumanRequest.Response();
 
-        try (AuthDatabase db = Application.getDatabase()) {
+        try (AuthDatabase db = Application.getAuthDatabase()) {
             if (verifyHumanRequest.reason == VerifyHumanRequest.Reason.REGISTRY) {
                 Captcha captcha = Captcha.newInstance(Application.DEBUG_MODE);
                 if (Application.DEBUG_MODE) {
@@ -45,7 +45,7 @@ public class UserController {
     public RegistrationRequest.Response registerAccountCallback(@RequestBody @NonNull RegistrationRequest registrationRequest) {
         RegistrationRequest.Response ret = new RegistrationRequest.Response();
 
-        try (AuthDatabase db = Application.getDatabase()) {
+        try (AuthDatabase db = Application.getAuthDatabase()) {
             Validator validator = new Validator();
             validator.inquiry = registrationRequest.inquiry;
             validator.mail = registrationRequest.mail;
@@ -65,7 +65,7 @@ public class UserController {
     public RequestResponse<VerifyUser.Response> verifyAccountCallback(@RequestBody @NonNull VerifyUser request) {
         RequestResponse<VerifyUser.Response> ret = new RequestResponse<>();
 
-        try (AuthDatabase db = Application.getDatabase()) {
+        try (AuthDatabase db = Application.getAuthDatabase()) {
             Validator validator = new Validator();
             validator.inquiry = request.inquiry;
             validator.mail = request.mail;
@@ -89,7 +89,7 @@ public class UserController {
     public RegistrationRequest.Response generateTokenCallback(@RequestBody @NonNull RegistrationRequest registrationRequest) {
         RegistrationRequest.Response ret = new RegistrationRequest.Response();
 
-        try (AuthDatabase db = Application.getDatabase()) {
+        try (AuthDatabase db = Application.getAuthDatabase()) {
             Validator validator = new Validator();
             validator.inquiry = registrationRequest.inquiry;
             validator.mail = registrationRequest.mail;
@@ -108,7 +108,7 @@ public class UserController {
     public UpdateUserRequest.Response updateUserCallback(@RequestBody @NonNull UpdateUserRequest registration) {
         UpdateUserRequest.Response ret = new UpdateUserRequest.Response();
 
-        try (AuthDatabase db = Application.getDatabase()) {
+        try (AuthDatabase db = Application.getAuthDatabase()) {
             Validator validator = new Validator();
             validator.inquiry = registration.inquiry;
             validator.mail = registration.mail;

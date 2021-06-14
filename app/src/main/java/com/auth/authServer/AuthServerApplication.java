@@ -1,11 +1,13 @@
 package com.auth.authServer;
 
 import com.auth.authServer.model.Application;
+import com.auth.authServer.model.KeyDatabase;
 import com.auth.authServer.model.implementations.AuthDatabaseImplementationRAM;
+import com.auth.authServer.model.implementations.KeyDatabaseImplementationRAM;
 import com.auth.interop.*;
 import com.auth.interop.contents.*;
-import com.auth.interop.utils.CipherUtils;
 import com.google.gson.Gson;
+import com.jcore.utils.CipherUtils;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
@@ -51,7 +53,8 @@ public class AuthServerApplication {
 		}
 
 
-		AuthDatabaseImplementationRAM db = new AuthDatabaseImplementationRAM();
+		AuthDatabaseImplementationRAM adb = new AuthDatabaseImplementationRAM();
+		KeyDatabase kdb = new KeyDatabaseImplementationRAM();
 
 		{
 			String panicPrivateKey;
@@ -64,7 +67,7 @@ public class AuthServerApplication {
 
 				EncryptedContent<SetPanicPublicKey> content = new EncryptedContent<>();
 				content.setContent(new SetPanicPublicKey("Hola"), Application.getGson());
-				db.setPanicPublicKeys(content);
+				kdb.setPanicPublicKey(content);
 			}
 			// 2 - gen_admin_pk
 			{
@@ -72,12 +75,12 @@ public class AuthServerApplication {
 				{
 					EncryptedContent<GenerateKeyPair> content = new EncryptedContent<>();
 					content.setContent(new GenerateKeyPair(new Date(System.currentTimeMillis())), Application.getGson());
-					pair = db.generateKeyPair(content);
+					pair = kdb.generateKeyPair(content);
 				}
 				{
 					EncryptedContent<SetAdminPrivateKey> content = new EncryptedContent<>();
 					content.setContent(new SetAdminPrivateKey(CipherUtils.getPublicKeyInBase64(pair)), Application.getGson());
-					db.setAdminPublicKey(content);
+					kdb.setAdminPrivateKey(content);
 					adminPrivateKey = CipherUtils.getPrivateKeyInBase64(pair);
 					adminCipher = CipherUtils.getEncrypter(CipherUtils.Algorithm.RSA, pair.getPrivate());
 				}
@@ -86,7 +89,7 @@ public class AuthServerApplication {
 			{
 				EncryptedContent<AddUserField> content = new EncryptedContent<>();
 				content.setContent(new AddUserField("name"), adminCipher, Application.getGson());
-				db.addUserField(content);
+				adb.addUserPropertyField(content);
 			}
 		}
 
@@ -100,7 +103,7 @@ public class AuthServerApplication {
 			// 4 - prepare_captcha
 			{
 				Captcha captcha = Captcha.newInstance(Application.DEBUG_MODE, "1", "11");
-				db.registerInquiry(captcha);
+				adb.registerInquiry(captcha);
 			}
 			// 5 - register
 			{
@@ -109,13 +112,13 @@ public class AuthServerApplication {
 				validator.password = "phone_pass";
 				validator.inquiry = new Inquiry("1", "11");
 				validator.debugForceInternalInquiry = new Inquiry("2", "22");
-				db.sendInquiry(Inquiry.Reason.REGISTER_VALIDATION, validator);
+				adb.sendInquiry(Inquiry.Reason.REGISTER_VALIDATION, validator);
 			}
 			// 6 - verify
 			{
 				Validator validator = new Validator();
 				validator.inquiry = new Inquiry("2", "22");
-				appId = db.verifyUser(validator);
+				appId = adb.verifyUser(validator);
 			}
 			// 7 - update_user
 			{
@@ -123,13 +126,13 @@ public class AuthServerApplication {
 				{
 					EncryptedContent<GenerateKeyPair> content = new EncryptedContent<>();
 					content.setContent(new GenerateKeyPair(new Date(System.currentTimeMillis())), Application.getGson());
-					pair = db.generateKeyPair(content);
+					pair = kdb.generateKeyPair(content);
 				}
 				{
 					Validator validator = new Validator();
 					validator.phone = "phone";
 					validator.password = "phone_pass";
-					User user = db.getUser(validator);
+					User user = adb.getUser(validator);
 
 					user.setName("MainApplication");
 					user.type = User.Type.APPLICATION;
@@ -137,8 +140,8 @@ public class AuthServerApplication {
 					user.appFields.add(User.NAME_FIELD);
 					user.publicKey = CipherUtils.getPublicKeyInBase64(pair);
 					appPrivateKey = CipherUtils.getPrivateKeyInBase64(pair);
-					db.updateUser(user, validator);
-					user = db.getUser(validator);
+					adb.updateUser(user, validator);
+					user = adb.getUser(validator);
 					applicationCode = user.appCode;
 				}
 			}
@@ -151,7 +154,7 @@ public class AuthServerApplication {
 			// 8 - prepare_captcha
 			{
 				Captcha captcha = Captcha.newInstance(Application.DEBUG_MODE, "3", "33");
-				db.registerInquiry(captcha);
+				adb.registerInquiry(captcha);
 			}
 			// 9 - register
 			{
@@ -160,23 +163,23 @@ public class AuthServerApplication {
 				validator.password = "user_pass";
 				validator.inquiry = new Inquiry("3", "33");
 				validator.debugForceInternalInquiry = new Inquiry("4", "44");
-				db.sendInquiry(Inquiry.Reason.REGISTER_VALIDATION, validator);
+				adb.sendInquiry(Inquiry.Reason.REGISTER_VALIDATION, validator);
 			}
 			// 10 - verify
 			{
 				Validator validator = new Validator();
 				validator.inquiry = new Inquiry("4", "44");
-				userId = db.verifyUser(validator);
+				userId = adb.verifyUser(validator);
 			}
 			// 11 - update_user
 			{
 				Validator validator = new Validator();
 				validator.phone = "phone";
 				validator.password = "phone_pass";
-				User user = db.getUser(validator);
+				User user = adb.getUser(validator);
 
 				user.setName("User Name");
-				db.updateUser(user, validator);
+				adb.updateUser(user, validator);
 			}
 			// 12 - generate_token
 			{
@@ -184,13 +187,13 @@ public class AuthServerApplication {
 				validator.phone = "phone";
 				validator.password = "phone_pass";
 				validator.applicationCode = applicationCode;
-				user_token = db.generateTokenForUser(validator);
+				user_token = adb.generateTokenForUser(validator);
 			}
 		}
 
 		{
 			String pk_name = user_token.serverPublicKeyName;
-			NamedPublicKey pk = db.getServerPublicKey(pk_name);
+			NamedPublicKey pk = kdb.getServerPublicKey(pk_name);
 
 			Cipher decrypter1 = CipherUtils.generateDecrypterFromBase64PublicKey(pk.name, CipherUtils.Algorithm.RSA);
 			Cipher decrypter2 = CipherUtils.generateDecrypterFromBase64PrivateKey(appPrivateKey, CipherUtils.Algorithm.RSA);

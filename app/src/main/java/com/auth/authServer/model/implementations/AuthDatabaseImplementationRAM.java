@@ -23,11 +23,6 @@ public class AuthDatabaseImplementationRAM implements AuthDatabase {
     }
 
     @Override
-    public ErrorCode setPanicPublicKeys(EncryptedContent<SetPanicPublicKey> value) {
-        return null;
-    }
-
-    @Override
     public ErrorCode setAlive(SetAlive value) {
         return null;
     }
@@ -38,27 +33,12 @@ public class AuthDatabaseImplementationRAM implements AuthDatabase {
     }
 
     @Override
-    public ErrorCode setAdminPublicKey(EncryptedContent<SetAdminPrivateKey> value) {
+    public ErrorCode addUserPropertyField(EncryptedContent<AddUserField> content) {
         return null;
     }
 
     @Override
-    public ErrorCode addUserField(EncryptedContent<AddUserField> content) {
-        return null;
-    }
-
-    @Override
-    public UserFields getUserFields() {
-        return null;
-    }
-
-    @Override
-    public KeyPair generateKeyPair(EncryptedContent<GenerateKeyPair> value) {
-        return null;
-    }
-
-    @Override
-    public NamedPublicKey getServerPublicKey(String name) {
+    public UserFields getUserPropertyFields() {
         return null;
     }
 

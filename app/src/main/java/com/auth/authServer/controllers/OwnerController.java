@@ -2,6 +2,7 @@ package com.auth.authServer.controllers;
 
 import com.auth.authServer.model.Application;
 import com.auth.authServer.model.AuthDatabase;
+import com.auth.authServer.model.KeyDatabase;
 import com.auth.interop.Captcha;
 import com.auth.interop.requests.SetPanicPublicKeyRequest;
 import com.auth.interop.requests.VerifyHumanRequest;
@@ -21,8 +22,8 @@ public class OwnerController {
     public SetPanicPublicKeyRequest.Response setPanicPublicKeyCallback(@RequestBody @NonNull SetPanicPublicKeyRequest request) {
         SetPanicPublicKeyRequest.Response ret = new SetPanicPublicKeyRequest.Response();
 
-        try (AuthDatabase db = Application.getDatabase()) {
-            ret.errorCode = db.setPanicPublicKeys(request);
+        try (KeyDatabase db = Application.getKeyDatabase()) {
+            ret.errorCode = db.setPanicPublicKey(request);
         } catch (Exception e) {
             e.printStackTrace();
         }

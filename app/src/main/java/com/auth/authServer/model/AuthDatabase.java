@@ -19,10 +19,12 @@ public interface AuthDatabase extends AutoCloseable {
     ErrorCode sendInquiry(Inquiry.Reason reason, Validator validator);
 
     UUID verifyUser(Validator validator);
-    ErrorCode updateUser(User user, Validator validator);
-    User getUser(Validator validator);
-    void updateUserPassword(String newPassword, Validator validator);
+    ErrorCode updateUser(User user, KeyDatabase keyDatabase, Validator validator);
+    User getUser(KeyDatabase keyDatabase, Validator validator);
+    ErrorCode updateUserPassword(String newPassword, Validator validator);
+    ErrorCode setUserPublicKey(String privateKey, KeyDatabase keyDatabase, Validator validator);
 
     ErrorCode grantApplicationForUser(Validator validator, String appCode);
     Token generateTokenForUser(KeyDatabase keyDatabase, Validator validator);
+
 }

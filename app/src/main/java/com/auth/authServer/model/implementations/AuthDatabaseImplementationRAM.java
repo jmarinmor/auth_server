@@ -76,22 +76,45 @@ public class AuthDatabaseImplementationRAM implements AuthDatabase {
     }
 
     @Override
-    public ErrorCode updateUser(User user, Validator validator) {
+    public ErrorCode updateUser(User user, KeyDatabase keyDatabase, Validator validator) {
+        UserRecord record = getUserRecord(validator);
+        if (record != null) {
+            String userData = keyDatabase.encrypt(user, record.keyName);
+            record.userData = userData;
+            return ErrorCode.SUCCEDED;
+        }
+        return ErrorCode.INVALID_USER;
+    }
+
+    @Override
+    public User getUser(KeyDatabase keyDatabase, Validator validator) {
+        UserRecord record = getUserRecord(validator);
+        if (record != null) {
+            User user = keyDatabase.decrypt(record.userData, User.class, record.keyName);
+            return user;
+        }
         return null;
     }
 
     @Override
-    public User getUser(Validator validator) {
-        return null;
-    }
-
-    @Override
-    public void updateUserPassword(String newPassword, Validator validator) {
+    public ErrorCode updateUserPassword(String newPassword, Validator validator) {
         UserRecord user_record = getUserRecord(validator);
         if (user_record != null) {
             String password_hash = DigestUtils.sha256Hex(newPassword);
             user_record.passwordHash = password_hash;
+            return ErrorCode.SUCCEDED;
         }
+        return ErrorCode.INVALID_USER;
+    }
+
+    @Override
+    public ErrorCode setUserPublicKey(String publicKey, KeyDatabase keyDatabase, Validator validator) {
+        User user = getUser(keyDatabase, validator);
+        if (user != null) {
+            user.publicKey = publicKey;
+            return updateUser(user, keyDatabase, validator);
+        } else
+            return ErrorCode.INVALID_USER;
     }
 
     @Override
@@ -109,11 +132,6 @@ public class AuthDatabaseImplementationRAM implements AuthDatabase {
             }
         }
         return null;
-    }
-
-    private User decryptUser(KeyDatabase keyDatabase, UserRecord record) {
-        User user = keyDatabase.decrypt(record.userData, User.class, record.keyName);
-        return user;
     }
 
     @Override
@@ -144,7 +162,7 @@ public class AuthDatabaseImplementationRAM implements AuthDatabase {
                 UserRecord user_record = getUserRecord(validator);
                 if (user_record != null) {
                     Token.UserData data = new Token.UserData();
-                    User user = decryptUser(keyDatabase, user_record);
+                    User user = keyDatabase.decrypt(user_record.userData, User.class, user_record.keyName);
                     data.values = user.values;
                     data.date = TimeUtils.now();
                     data.applicationCode = null;
@@ -152,7 +170,7 @@ public class AuthDatabaseImplementationRAM implements AuthDatabase {
 
                     try {
                         Token ret = new Token();
-                        ret.serverPublicKeyName = null;
+                        ret.serverPublicKeyName = user_record.keyName;
                         ret.userData = keyDatabase.encrypt(data, user_record.keyName);
                         return ret;
                     } catch (Exception e) {

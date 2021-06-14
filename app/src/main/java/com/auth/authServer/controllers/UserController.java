@@ -110,13 +110,14 @@ public class UserController {
     public UpdateUserRequest.Response updateUserCallback(@RequestBody @NonNull UpdateUserRequest registration) {
         UpdateUserRequest.Response ret = new UpdateUserRequest.Response();
 
-        try (AuthDatabase db = Application.getAuthDatabase()) {
+        try (   AuthDatabase adb = Application.getAuthDatabase();
+                KeyDatabase kdb = Application.getKeyDatabase()) {
             Validator validator = new Validator();
             validator.inquiry = registration.inquiry;
             validator.mail = registration.mail;
             validator.phone = registration.phone;
             validator.password = registration.password;
-            ret.errorCode = db.updateUser(registration.user, validator);
+            ret.errorCode = adb.updateUser(registration.user, kdb, validator);
         } catch (Exception e) {
             e.printStackTrace();
         }

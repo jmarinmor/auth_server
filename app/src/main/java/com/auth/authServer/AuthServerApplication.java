@@ -1,6 +1,7 @@
 package com.auth.authServer;
 
 import com.auth.authServer.model.Application;
+import com.auth.authServer.model.AuthDatabase;
 import com.auth.authServer.model.KeyDatabase;
 import com.auth.authServer.model.implementations.AuthDatabaseImplementationRAM;
 import com.auth.authServer.model.implementations.KeyDatabaseImplementationRAM;
@@ -53,9 +54,11 @@ public class AuthServerApplication {
 		}
 
 
-		AuthDatabaseImplementationRAM adb = new AuthDatabaseImplementationRAM();
+		AuthDatabase adb = new AuthDatabaseImplementationRAM();
 		KeyDatabase kdb = new KeyDatabaseImplementationRAM();
 		Token admin_token;
+		String adminPrivateKey;
+		Cipher adminCipher;
 
 		// 1 - register admin user
 		{
@@ -72,11 +75,18 @@ public class AuthServerApplication {
 				validator.password = "54321";
 				admin_token = adb.generateTokenForUser(kdb, validator);
 			}
+			{
+				KeyPair pair = CipherUtils.generateKeyPair(CipherUtils.Algorithm.RSA);
+				adminPrivateKey = CipherUtils.getPrivateKeyInBase64(pair);
+				adminCipher = CipherUtils.getEncrypter(CipherUtils.Algorithm.RSA, pair.getPrivate());
+
+				Validator validator = new Validator();
+				validator.password = "54321";
+				adb.setUserPublicKey(CipherUtils.getPublicKeyInBase64(pair), kdb, validator);
+			}
 		}
 		{
 			String panicPrivateKey;
-			String adminPrivateKey;
-			Cipher adminCipher;
 			// 1 - set_panic_pk
 			{
 				KeyPair pair = CipherUtils.generateKeyPair(CipherUtils.Algorithm.RSA);
@@ -98,8 +108,7 @@ public class AuthServerApplication {
 					EncryptedContent<AdminPrivateKey> content = new EncryptedContent<>();
 					content.setContent(new AdminPrivateKey(CipherUtils.getPublicKeyInBase64(pair)), Application.getGson());
 					kdb.setAdminPrivateKey(content);
-					adminPrivateKey = CipherUtils.getPrivateKeyInBase64(pair);
-					adminCipher = CipherUtils.getEncrypter(CipherUtils.Algorithm.RSA, pair.getPrivate());
+					//adminPrivateKey = CipherUtils.getPrivateKeyInBase64(pair);
 				}
 			}
 			// 3 - add_user_key
@@ -149,7 +158,7 @@ public class AuthServerApplication {
 					Validator validator = new Validator();
 					validator.phone = "phone";
 					validator.password = "phone_pass";
-					User user = adb.getUser(validator);
+					User user = adb.getUser(kdb, validator);
 
 					user.setName("MainApplication");
 					user.type = User.Type.APPLICATION;
@@ -157,8 +166,8 @@ public class AuthServerApplication {
 					user.appFields.add(User.NAME_FIELD);
 					user.publicKey = CipherUtils.getPublicKeyInBase64(pair);
 					appPrivateKey = CipherUtils.getPrivateKeyInBase64(pair);
-					adb.updateUser(user, validator);
-					user = adb.getUser(validator);
+					adb.updateUser(user, kdb, validator);
+					user = adb.getUser(kdb, validator);
 					applicationCode = user.appCode;
 				}
 			}
@@ -193,10 +202,10 @@ public class AuthServerApplication {
 				Validator validator = new Validator();
 				validator.phone = "phone";
 				validator.password = "phone_pass";
-				User user = adb.getUser(validator);
+				User user = adb.getUser(kdb, validator);
 
 				user.setName("User Name");
-				adb.updateUser(user, validator);
+				adb.updateUser(user, kdb, validator);
 			}
 			// 12 - generate_token
 			{

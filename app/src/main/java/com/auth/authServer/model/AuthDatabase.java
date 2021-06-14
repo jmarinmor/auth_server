@@ -29,12 +29,13 @@ public interface AuthDatabase extends AutoCloseable {
     KeyPair generateKeyPair(EncryptedContent<GenerateKeyPair> value);
     NamedPublicKey getServerPublicKey(String name);
 
-    ErrorCode registerHumanVerificationInquiry(Inquiry inquiry);
-    ErrorCode sendValidationInquiry(Validator validator);
+    ErrorCode registerInquiry(Inquiry inquiry);
+    ErrorCode sendInquiry(Inquiry.Reason reason, Validator validator);
+
     UUID verifyUser(Validator validator);
     ErrorCode updateUser(User user, Validator validator);
     User getUser(Validator validator);
 
-    ErrorCode registerUserInApplication(String appCode, Validator validator);
+    ErrorCode grantApplicationForUser(Validator validator, String appCode);
     Token generateTokenForUser(Validator validator);
 }

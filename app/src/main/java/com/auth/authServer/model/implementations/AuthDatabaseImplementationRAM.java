@@ -63,12 +63,12 @@ public class AuthDatabaseImplementationRAM implements AuthDatabase {
     }
 
     @Override
-    public ErrorCode registerHumanVerificationInquiry(Inquiry inquiry) {
+    public ErrorCode registerInquiry(Inquiry inquiry) {
         return null;
     }
 
     @Override
-    public ErrorCode sendValidationInquiry(Validator validator) {
+    public ErrorCode sendInquiry(Inquiry.Reason reason, Validator validator) {
         return null;
     }
 
@@ -88,7 +88,7 @@ public class AuthDatabaseImplementationRAM implements AuthDatabase {
     }
 
     @Override
-    public ErrorCode registerUserInApplication(String appCode, Validator validator) {
+    public ErrorCode grantApplicationForUser(Validator validator, String appCode) {
         return null;
     }
 

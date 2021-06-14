@@ -22,6 +22,7 @@ public class Captcha extends Inquiry {
         ret.inquiry = key;
         if (debugMode)
             ret.desiredResult = value;
+        ret.reason = Reason.HUMAN_VERIFICATION;
         return ret;
     }
 

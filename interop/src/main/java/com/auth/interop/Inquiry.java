@@ -7,12 +7,18 @@ import java.util.UUID;
 
 public class Inquiry {
     public enum Reason {
-        HUMAN_VERIFICATION,
-        RESPONSE_FOR_LOGIN
+        HUMAN_VERIFICATION(1),
+        REGISTER_VALIDATION(2),
+        UPDATE_USER(3),
+        GRANT_APPLICATION_FOR_USER(4);
+
+        private int type;
+        Reason(int type) {this.type = type;}
     }
 
     private static final Random mRandom = new Random();
 
+    public Reason reason;
     public String inquiry;
     public String desiredResult;
 

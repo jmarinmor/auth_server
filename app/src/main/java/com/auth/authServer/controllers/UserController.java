@@ -30,7 +30,7 @@ public class UserController {
                 }
                 ret.inquiry = captcha.getInquiry();
                 ret.captchaImage = captcha.image;
-                db.registerHumanVerificationInquiry(captcha);
+                db.registerInquiry(captcha);
             }
 
         } catch (Exception e) {
@@ -52,7 +52,7 @@ public class UserController {
             validator.phone = registrationRequest.phone;
             validator.password = registrationRequest.password;
             // this functions send a mail or phone code
-            ret.errorCode = db.sendValidationInquiry(validator);
+            ret.errorCode = db.sendInquiry(Inquiry.Reason.REGISTER_VALIDATION, validator);
         } catch (Exception e) {
             e.printStackTrace();
         }

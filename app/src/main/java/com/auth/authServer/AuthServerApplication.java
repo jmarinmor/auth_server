@@ -100,7 +100,7 @@ public class AuthServerApplication {
 			// 4 - prepare_captcha
 			{
 				Captcha captcha = Captcha.newInstance(Application.DEBUG_MODE, "1", "11");
-				db.registerHumanVerificationInquiry(captcha);
+				db.registerInquiry(captcha);
 			}
 			// 5 - register
 			{
@@ -109,7 +109,7 @@ public class AuthServerApplication {
 				validator.password = "phone_pass";
 				validator.inquiry = new Inquiry("1", "11");
 				validator.debugForceInternalInquiry = new Inquiry("2", "22");
-				db.sendValidationInquiry(validator);
+				db.sendInquiry(Inquiry.Reason.REGISTER_VALIDATION, validator);
 			}
 			// 6 - verify
 			{
@@ -151,7 +151,7 @@ public class AuthServerApplication {
 			// 8 - prepare_captcha
 			{
 				Captcha captcha = Captcha.newInstance(Application.DEBUG_MODE, "3", "33");
-				db.registerHumanVerificationInquiry(captcha);
+				db.registerInquiry(captcha);
 			}
 			// 9 - register
 			{
@@ -160,7 +160,7 @@ public class AuthServerApplication {
 				validator.password = "user_pass";
 				validator.inquiry = new Inquiry("3", "33");
 				validator.debugForceInternalInquiry = new Inquiry("4", "44");
-				db.sendValidationInquiry(validator);
+				db.sendInquiry(Inquiry.Reason.REGISTER_VALIDATION, validator);
 			}
 			// 10 - verify
 			{

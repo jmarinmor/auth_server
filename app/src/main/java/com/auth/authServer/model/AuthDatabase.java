@@ -21,7 +21,8 @@ public interface AuthDatabase extends AutoCloseable {
     UUID verifyUser(Validator validator);
     ErrorCode updateUser(User user, Validator validator);
     User getUser(Validator validator);
+    void updateUserPassword(String newPassword, Validator validator);
 
     ErrorCode grantApplicationForUser(Validator validator, String appCode);
-    Token generateTokenForUser(Validator validator);
+    Token generateTokenForUser(KeyDatabase keyDatabase, Validator validator);
 }

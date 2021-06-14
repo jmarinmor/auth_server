@@ -20,7 +20,7 @@ import java.util.UUID;
 
 @SpringBootApplication
 public class AuthServerApplication {
-	private static final boolean TEST_DATABASE = false;
+	private static final boolean TEST_DATABASE = true;
 
 	// Order
 	public static void main(String[] args) {
@@ -55,7 +55,24 @@ public class AuthServerApplication {
 
 		AuthDatabaseImplementationRAM adb = new AuthDatabaseImplementationRAM();
 		KeyDatabase kdb = new KeyDatabaseImplementationRAM();
+		Token admin_token;
 
+		// 1 - register admin user
+		{
+			{
+				Validator validator = new Validator();
+				validator.password = "12345";
+				admin_token = adb.generateTokenForUser(kdb, validator);
+			}
+			{
+				Validator validator = new Validator();
+				validator.password = "12345";
+				adb.updateUserPassword("54321", validator);
+				admin_token = adb.generateTokenForUser(kdb, validator);
+				validator.password = "54321";
+				admin_token = adb.generateTokenForUser(kdb, validator);
+			}
+		}
 		{
 			String panicPrivateKey;
 			String adminPrivateKey;
@@ -65,8 +82,8 @@ public class AuthServerApplication {
 				KeyPair pair = CipherUtils.generateKeyPair(CipherUtils.Algorithm.RSA);
 				panicPrivateKey = CipherUtils.getPrivateKeyInBase64(pair);
 
-				EncryptedContent<SetPanicPublicKey> content = new EncryptedContent<>();
-				content.setContent(new SetPanicPublicKey("Hola"), Application.getGson());
+				EncryptedContent<PanicPublicKey> content = new EncryptedContent<>();
+				content.setContent(new PanicPublicKey("Hola"), Application.getGson());
 				kdb.setPanicPublicKey(content);
 			}
 			// 2 - gen_admin_pk
@@ -78,8 +95,8 @@ public class AuthServerApplication {
 					pair = kdb.generateKeyPair(content);
 				}
 				{
-					EncryptedContent<SetAdminPrivateKey> content = new EncryptedContent<>();
-					content.setContent(new SetAdminPrivateKey(CipherUtils.getPublicKeyInBase64(pair)), Application.getGson());
+					EncryptedContent<AdminPrivateKey> content = new EncryptedContent<>();
+					content.setContent(new AdminPrivateKey(CipherUtils.getPublicKeyInBase64(pair)), Application.getGson());
 					kdb.setAdminPrivateKey(content);
 					adminPrivateKey = CipherUtils.getPrivateKeyInBase64(pair);
 					adminCipher = CipherUtils.getEncrypter(CipherUtils.Algorithm.RSA, pair.getPrivate());
@@ -187,7 +204,7 @@ public class AuthServerApplication {
 				validator.phone = "phone";
 				validator.password = "phone_pass";
 				validator.applicationCode = applicationCode;
-				user_token = adb.generateTokenForUser(validator);
+				user_token = adb.generateTokenForUser(kdb, validator);
 			}
 		}
 
@@ -197,7 +214,7 @@ public class AuthServerApplication {
 
 			Cipher decrypter1 = CipherUtils.generateDecrypterFromBase64PublicKey(pk.name, CipherUtils.Algorithm.RSA);
 			Cipher decrypter2 = CipherUtils.generateDecrypterFromBase64PrivateKey(appPrivateKey, CipherUtils.Algorithm.RSA);
-			Token.UserData user = user_token.userData.getContent(decrypter2, decrypter1, Application.getGson());
+			Token.UserData user = ContentEncrypter.decryptContent(Token.UserData.class, user_token.userData, decrypter2, decrypter1, Application.getGson());
 			user = null;
 		}
 

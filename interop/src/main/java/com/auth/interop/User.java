@@ -10,6 +10,7 @@ public class User {
     public static final String VOID_STRING = "";
 
     public enum Type {
+        ADMIN,
         USER,
         APPLICATION
     }

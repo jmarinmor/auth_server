@@ -1,10 +1,10 @@
 package com.auth.interop.contents;
 
-public class SetAdminPrivateKey {
+public class AdminPrivateKey {
     // In base64
     public String key;
 
-    public SetAdminPrivateKey(String key) {
+    public AdminPrivateKey(String key) {
         this.key = key;
     }
 }

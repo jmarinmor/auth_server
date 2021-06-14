@@ -2,6 +2,7 @@ package com.auth.authServer.controllers;
 
 import com.auth.authServer.model.AuthDatabase;
 import com.auth.authServer.model.Application;
+import com.auth.authServer.model.KeyDatabase;
 import com.auth.interop.ErrorCode;
 import com.auth.interop.Validator;
 import com.auth.interop.*;
@@ -89,13 +90,14 @@ public class UserController {
     public RegistrationRequest.Response generateTokenCallback(@RequestBody @NonNull RegistrationRequest registrationRequest) {
         RegistrationRequest.Response ret = new RegistrationRequest.Response();
 
-        try (AuthDatabase db = Application.getAuthDatabase()) {
+        try (   AuthDatabase adb = Application.getAuthDatabase();
+                KeyDatabase kdb = Application.getKeyDatabase()) {
             Validator validator = new Validator();
             validator.inquiry = registrationRequest.inquiry;
             validator.mail = registrationRequest.mail;
             validator.phone = registrationRequest.phone;
             validator.password = registrationRequest.password;
-            ret.response = db.generateTokenForUser(validator);
+            ret.response = adb.generateTokenForUser(kdb, validator);
             if (ret.response == null || ret.response.userData == null)
                 ret.errorCode = ErrorCode.INVALID_USER;
         } catch (Exception e) {

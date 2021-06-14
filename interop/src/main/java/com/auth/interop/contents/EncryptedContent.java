@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 
 import javax.crypto.Cipher;
 import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
@@ -15,55 +16,36 @@ public class EncryptedContent<T> {
 
     public EncryptedContent() {
         if (mPersistentClass == null) {
-            mPersistentClass = (Class<T>) ((ParameterizedType) getClass().getGenericSuperclass()).getActualTypeArguments()[0];
+            Type c = ((ParameterizedType)getClass().getGenericSuperclass()).getActualTypeArguments()[0];
+            mPersistentClass = (Class<T>)c;
         }
     }
 
     public EncryptedContent<T> setContent(T content, Cipher cipher1, Cipher cipher2, Gson serializer) throws Exception {
-        String json = serializer.toJson(content);
-        byte[] encryptedBytes1 = cipher1.doFinal(json.getBytes());
-        byte[] encryptedBytes2 = cipher2.doFinal(encryptedBytes1);
-        String encryptedBytesInBase64String = Base64.getEncoder().encodeToString(encryptedBytes2);
-        this.content = encryptedBytesInBase64String;
+        this.content = ContentEncrypter.encryptContent(content, cipher1, cipher2, serializer);
         return this;
     }
 
     public T getContent(Cipher cipher1, Cipher cipher2, Gson serializer) throws Exception {
-        byte[] encryptedBytes = Base64.getDecoder().decode(content);
-        byte[] bytes1 = cipher1.doFinal(encryptedBytes);
-        String json = new String(cipher2.doFinal(bytes1));
-        T obj = serializer.fromJson(json, (Class<T>)mPersistentClass);
-        return obj;
+        return ContentEncrypter.decryptContent((Class<T>)mPersistentClass, content, cipher1, cipher2, serializer);
     }
 
     public EncryptedContent<T> setContent(T content, Cipher cipher, Gson serializer) throws Exception {
-        String json = serializer.toJson(content);
-        byte[] encryptedBytes = cipher.doFinal(json.getBytes());
-        String encryptedBytesInBase64String = Base64.getEncoder().encodeToString(encryptedBytes);
-        this.content = encryptedBytesInBase64String;
+        this.content = ContentEncrypter.encryptContent(content, cipher, serializer);
         return this;
     }
 
     public T getContent(Cipher cipher, Gson serializer) throws Exception {
-        byte[] encryptedBytes = Base64.getDecoder().decode(content);
-        String json = new String(cipher.doFinal(encryptedBytes));
-        T obj = serializer.fromJson(json, (Class<T>)mPersistentClass);
-        return obj;
+        return ContentEncrypter.decryptContent((Class<T>)mPersistentClass, content, serializer);
     }
 
     public EncryptedContent<T> setContent(T content, Gson serializer) throws Exception {
-        String json = serializer.toJson(content);
-        String jsonBase64String = Base64.getEncoder().encodeToString(json.getBytes());
-        //String sbinary = Base64.getEncoder().encodeToString(data.getBytes(StandardCharsets.UTF_8));
-        this.content = jsonBase64String;
+        this.content = ContentEncrypter.encryptContent(content, serializer);
         return this;
     }
 
     public T getContent(Gson serializer) throws Exception {
-        byte[] jsonBase64Bytes = Base64.getDecoder().decode(content);
-        String json = new String(jsonBase64Bytes);
-        T c = serializer.fromJson(json, (Class<T>)mPersistentClass);
-        return c;
+        return ContentEncrypter.decryptContent((Class<T>)mPersistentClass, content, serializer);
     }
 
 

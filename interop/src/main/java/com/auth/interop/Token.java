@@ -14,5 +14,5 @@ public class Token {
     }
 
     public String serverPublicKeyName;
-    public EncryptedContent<UserData> userData;
+    public String userData;
 }

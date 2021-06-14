@@ -4,8 +4,8 @@ import com.auth.interop.ErrorCode;
 import com.auth.interop.NamedPublicKey;
 import com.auth.interop.contents.EncryptedContent;
 import com.auth.interop.contents.GenerateKeyPair;
-import com.auth.interop.contents.SetAdminPrivateKey;
-import com.auth.interop.contents.SetPanicPublicKey;
+import com.auth.interop.contents.AdminPrivateKey;
+import com.auth.interop.contents.PanicPublicKey;
 
 import java.security.KeyPair;
 
@@ -18,12 +18,16 @@ public interface KeyDatabase extends AutoCloseable {
      * @param value
      * @return
      */
-    ErrorCode setPanicPublicKey(EncryptedContent<SetPanicPublicKey> value);
-    EncryptedContent<SetPanicPublicKey> getPanicPublicKey();
+    ErrorCode setPanicPublicKey(EncryptedContent<PanicPublicKey> value);
+    EncryptedContent<PanicPublicKey> getPanicPublicKey();
 
     // Admin private key is used for decipher incomming messages in order to check they are valid
-    ErrorCode setAdminPrivateKey(EncryptedContent<SetAdminPrivateKey> value);
+    ErrorCode setAdminPrivateKey(EncryptedContent<AdminPrivateKey> value);
 
+    String getRandomPublicKeyName();
     KeyPair generateKeyPair(EncryptedContent<GenerateKeyPair> value);
     NamedPublicKey getServerPublicKey(String name);
+
+    String encrypt(Object objectToEncrypt, String keyName);
+    <T> T decrypt(String objectToDecrypt, Class<T> aClass, String keyName);
 }

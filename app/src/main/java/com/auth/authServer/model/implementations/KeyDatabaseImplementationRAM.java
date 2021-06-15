@@ -25,7 +25,7 @@ public class KeyDatabaseImplementationRAM implements KeyDatabase {
     public final int MAX_KEY_COUNT = 2;
 
     private static byte[] mPanicPublicKey;
-    private static byte[] mAdminPrivateKey;
+    private static byte[] mAdminPublicKey;
     private static Random mRandom = new Random();
     private static List<KeyRecord> mKeyList = new ArrayList<>();
 
@@ -71,24 +71,33 @@ public class KeyDatabaseImplementationRAM implements KeyDatabase {
         return null;
     }
 
-    @Override
-    public ErrorCode setAdminPrivateKey(EncryptedContent<AdminPrivateKey> value) {
-        if (mPanicPublicKey == null) {
-            AdminPrivateKey content = null;
-            try {
-                content = value.getContent(mGson);
-                byte[] key_bytes = CipherUtils.encodeBase64StringToBase64Bytes(content.key);
-                if (key_bytes == null)
-                    throw new Exception();
-                CipherUtils.newPrivateKeyFromBytes(key_bytes, CipherUtils.Algorithm.RSA);
-                mAdminPrivateKey = key_bytes;
+    private void performSetAdminPrivateKey(String newKey) throws Exception {
+        byte[] key_bytes = CipherUtils.encodeBase64StringToBase64Bytes(newKey);
+        if (key_bytes == null)
+            throw new Exception();
+        CipherUtils.newPublicKeyFromBytes(key_bytes, CipherUtils.Algorithm.RSA);
+        mAdminPublicKey = key_bytes;
+    }
 
+    @Override
+    public ErrorCode setAdminPublicKey(EncryptedContent<AdminPublicKey> encryptedKey) {
+        if (mAdminPublicKey == null) {
+            AdminPublicKey content = null;
+            try {
+                content = encryptedKey.getContent(mGson);
+                performSetAdminPrivateKey(content.key);
             } catch (Exception e) {
                 e.printStackTrace();
                 return ErrorCode.INVALID_PARAMS;
             }
         } else {
-            // TODO: 14/06/2021 Pensar esto
+            try {
+                Cipher decrypter = CipherUtils.generateDecrypterFromBase64PublicKey(mPanicPublicKey, CipherUtils.Algorithm.RSA);
+                AdminPublicKey content = encryptedKey.getContent(decrypter, mGson);
+                performSetAdminPrivateKey(content.key);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
         return ErrorCode.SUCCEDED;
     }

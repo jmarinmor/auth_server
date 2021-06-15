@@ -13,7 +13,11 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 import javax.crypto.Cipher;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.Provider;
+import java.security.Security;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashSet;
@@ -37,6 +41,41 @@ public class AuthServerApplication {
 	}
 
 	private static void testDatabase() throws Exception {
+
+		if (true) {
+			final String ALGORITHM_RSA = "RSA";
+			final String ALGORITHM_RSA_CIPHER = "RSA";
+			final int ALGORITHM_RSA_KEYSIZE = 2048;
+			//final String SECURITY_PROVIDER = "BC";
+
+//			for (Provider provider: Security.getProviders()) {
+//				System.out.println(provider.getName());
+//				for (String key: provider.stringPropertyNames())
+//					System.out.println("\t" + key + "\t" + provider.getProperty(key));
+//			}
+
+			KeyPairGenerator keyPairGeneratorClient;
+			keyPairGeneratorClient = KeyPairGenerator.getInstance(ALGORITHM_RSA);
+			keyPairGeneratorClient.initialize(ALGORITHM_RSA_KEYSIZE);
+
+			KeyPair pair = keyPairGeneratorClient.generateKeyPair();
+
+			byte[] plain = "hello00000000000hello00000000000hello00000000000hello00000000000hello00000000000hello00000000000hello00000000000hello00000000000hello00000000000hello00000000000hello00000000000hello00000000000hello00000000000hello00000000000hello00000000000hello00000000000".getBytes(StandardCharsets.UTF_8);
+
+			Cipher encrypter = Cipher.getInstance(ALGORITHM_RSA_CIPHER);
+			encrypter.init(Cipher.ENCRYPT_MODE, pair.getPrivate());
+			int n = encrypter.getBlockSize();
+			n= encrypter.getOutputSize(25);
+			byte[] encrypted = encrypter.doFinal(plain);
+
+			Cipher decrypter = Cipher.getInstance(ALGORITHM_RSA_CIPHER);
+			decrypter.init(Cipher.DECRYPT_MODE, pair.getPublic());
+			byte[] decrypted = decrypter.doFinal(encrypted);
+
+			String s = new String(decrypted, StandardCharsets.US_ASCII);
+
+			s = null;
+		}
 
 		if (false) {
 			KeyPair pair = CipherUtils.generateKeyPair(CipherUtils.Algorithm.RSA);
@@ -70,7 +109,7 @@ public class AuthServerApplication {
 			{
 				Validator validator = new Validator();
 				validator.password = "12345";
-				adb.updateUserPassword("54321", validator);
+				adb.updateUserValidator("54321", validator, Validator.fromPassword("54321"));
 				admin_token = adb.generateTokenForUser(kdb, validator);
 				validator.password = "54321";
 				admin_token = adb.generateTokenForUser(kdb, validator);
@@ -82,7 +121,9 @@ public class AuthServerApplication {
 
 				Validator validator = new Validator();
 				validator.password = "54321";
-				adb.setUserPublicKey(CipherUtils.getPublicKeyInBase64(pair), kdb, validator);
+				String public_key = CipherUtils.getPublicKeyInBase64(pair);
+				adb.setUserPublicKey(public_key, kdb, validator);
+				adb.setUserPublicKey(public_key, kdb, validator);
 			}
 		}
 		{
@@ -93,7 +134,7 @@ public class AuthServerApplication {
 				panicPrivateKey = CipherUtils.getPrivateKeyInBase64(pair);
 
 				EncryptedContent<PanicPublicKey> content = new EncryptedContent<>();
-				content.setContent(new PanicPublicKey("Hola"), Application.getGson());
+				content.setContent(new PanicPublicKey(CipherUtils.getPublicKeyInBase64(pair)), adminCipher, Application.getGson());
 				kdb.setPanicPublicKey(content);
 			}
 			// 2 - gen_admin_pk
@@ -105,9 +146,9 @@ public class AuthServerApplication {
 					pair = kdb.generateKeyPair(content);
 				}
 				{
-					EncryptedContent<AdminPrivateKey> content = new EncryptedContent<>();
-					content.setContent(new AdminPrivateKey(CipherUtils.getPublicKeyInBase64(pair)), Application.getGson());
-					kdb.setAdminPrivateKey(content);
+					EncryptedContent<AdminPublicKey> content = new EncryptedContent<>();
+					content.setContent(new AdminPublicKey(CipherUtils.getPublicKeyInBase64(pair)), Application.getGson());
+					kdb.setAdminPublicKey(content);
 					//adminPrivateKey = CipherUtils.getPrivateKeyInBase64(pair);
 				}
 			}

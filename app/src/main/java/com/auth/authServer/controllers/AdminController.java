@@ -6,7 +6,7 @@ import com.auth.authServer.model.KeyDatabase;
 import com.auth.interop.ErrorCode;
 import com.auth.interop.requests.AddUserFieldRequest;
 import com.auth.interop.requests.GenerateAdminKeysRequest;
-import com.auth.interop.requests.SetAdminPrivateKeyRequest;
+import com.auth.interop.requests.SetAdminPublicKeyRequest;
 import com.jcore.utils.CipherUtils;
 import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,11 +21,11 @@ import java.security.KeyPair;
 public class AdminController {
 
     @PostMapping(value = "/set_admin_pk")
-    public SetAdminPrivateKeyRequest.Response setAdminPrivateKeyCallback(@RequestBody @NonNull SetAdminPrivateKeyRequest request) {
-        SetAdminPrivateKeyRequest.Response ret = new SetAdminPrivateKeyRequest.Response();
+    public SetAdminPublicKeyRequest.Response setAdminPrivateKeyCallback(@RequestBody @NonNull SetAdminPublicKeyRequest request) {
+        SetAdminPublicKeyRequest.Response ret = new SetAdminPublicKeyRequest.Response();
 
         try (KeyDatabase db = Application.getKeyDatabase()) {
-            ret.errorCode = db.setAdminPrivateKey(request);
+            ret.errorCode = db.setAdminPublicKey(request);
         } catch (Exception e) {
             e.printStackTrace();
         }

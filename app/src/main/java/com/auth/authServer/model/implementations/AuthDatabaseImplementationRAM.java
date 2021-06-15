@@ -6,11 +6,12 @@ import com.auth.authServer.model.AuthDatabase;
 import com.auth.interop.contents.*;
 import com.auth.interop.requests.RegistrationRequest;
 import com.google.gson.Gson;
+import com.jcore.utils.CipherUtils;
 import com.jcore.utils.TimeUtils;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 
-import java.security.KeyPair;
+import javax.crypto.Cipher;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -79,8 +80,37 @@ public class AuthDatabaseImplementationRAM implements AuthDatabase {
     public ErrorCode updateUser(User user, KeyDatabase keyDatabase, Validator validator) {
         UserRecord record = getUserRecord(validator);
         if (record != null) {
+            User new_user;
+            {
+                String json = mGson.toJson(user);
+                new_user = mGson.fromJson(json, User.class);
+            }
+            User old_user = keyDatabase.decrypt(record.userData, User.class, record.keyName);
+            if (!old_user.id.equals(new_user.id))
+                return ErrorCode.INVALID_USER;
+
+            new_user.type = old_user.type;
+
             String userData = keyDatabase.encrypt(user, record.keyName);
             record.userData = userData;
+
+            if (new_user.type == User.Type.ADMIN && !StringUtils.equals(old_user.publicKey, new_user.publicKey)) {
+                try {
+                    AdminPublicKeyContainer container = new AdminPublicKeyContainer();
+                    AdminPublicKey content = new AdminPublicKey();
+                    content.key = new_user.publicKey;
+                    if (old_user.publicKey != null) {
+                        Cipher cipher = CipherUtils.generateDecrypterFromBase64PublicKey(old_user.publicKey, CipherUtils.Algorithm.RSA);
+                        container.setContent(content, cipher, mGson);
+                    } else
+                        container.setContent(content, mGson);
+
+                    keyDatabase.setAdminPublicKey(container);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+
             return ErrorCode.SUCCEDED;
         }
         return ErrorCode.INVALID_USER;
@@ -97,24 +127,24 @@ public class AuthDatabaseImplementationRAM implements AuthDatabase {
     }
 
     @Override
-    public ErrorCode updateUserPassword(String newPassword, Validator validator) {
+    public ErrorCode updateUserValidator(String newPassword, Validator validator, Validator newValidator){
         UserRecord user_record = getUserRecord(validator);
         if (user_record != null) {
-            String password_hash = DigestUtils.sha256Hex(newPassword);
-            user_record.passwordHash = password_hash;
+            if (newValidator.password != null) {
+                String hash = DigestUtils.sha256Hex(newValidator.password);
+                user_record.passwordHash = hash;
+            }
+            if (newValidator.phone != null) {
+                String hash = DigestUtils.sha256Hex(newValidator.phone);
+                user_record.phoneHash = hash;
+            }
+            if (newValidator.mail != null) {
+                String hash = DigestUtils.sha256Hex(newValidator.mail);
+                user_record.mailHash = hash;
+            }
             return ErrorCode.SUCCEDED;
         }
         return ErrorCode.INVALID_USER;
-    }
-
-    @Override
-    public ErrorCode setUserPublicKey(String publicKey, KeyDatabase keyDatabase, Validator validator) {
-        User user = getUser(keyDatabase, validator);
-        if (user != null) {
-            user.publicKey = publicKey;
-            return updateUser(user, keyDatabase, validator);
-        } else
-            return ErrorCode.INVALID_USER;
     }
 
     @Override

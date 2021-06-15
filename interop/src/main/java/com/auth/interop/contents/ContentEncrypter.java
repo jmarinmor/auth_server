@@ -25,7 +25,8 @@ public class ContentEncrypter {
 
     public static String encryptContent(Object content, Cipher cipher, Gson serializer) throws Exception {
         String json = serializer.toJson(content);
-        byte[] encryptedBytes = cipher.doFinal(json.getBytes());
+        byte[] src = json.getBytes();
+        byte[] encryptedBytes = cipher.doFinal(src);
         String encryptedBytesInBase64String = Base64.getEncoder().encodeToString(encryptedBytes);
         return encryptedBytesInBase64String;
     }

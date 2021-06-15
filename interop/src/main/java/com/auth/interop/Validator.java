@@ -9,4 +9,10 @@ public class Validator {
     public Inquiry inquiry;
     public Inquiry debugForceInternalInquiry;
     public byte[] publicKey;
+
+    public static Validator fromPassword(String password) {
+        Validator ret = new Validator();
+        ret.password = password;
+        return ret;
+    }
 }

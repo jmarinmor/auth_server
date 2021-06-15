@@ -16,6 +16,7 @@ public class KeyDatabaseImplementationRAM implements KeyDatabase {
 
     private static class KeyRecord {
         private String name;
+        private boolean inPanic;
         private String publicKeyBase64String;
         private KeyPair keys;
         private Crypter.Encrypter encrypter;
@@ -32,23 +33,7 @@ public class KeyDatabaseImplementationRAM implements KeyDatabase {
 
     @Override
     public ErrorCode executeAdminCommand(String commandToDecrypt) {
-        AdminCommand command;
-        if (mAdminPublicKey == null) {
-            try {
-                command = ContentEncrypter.decryptContent(AdminCommand.class, commandToDecrypt, mGson);
-            } catch (Exception e) {
-                e.printStackTrace();
-                return ErrorCode.INVALID_PARAMS;
-            }
-        } else {
-            try {
-                Crypter.Decrypter decrypter = Crypter.Decrypter.newFromRSAPublicKey(mAdminPublicKey);
-                command = ContentEncrypter.decryptContent(AdminCommand.class, commandToDecrypt, decrypter, mGson);
-            } catch (Exception e) {
-                e.printStackTrace();
-                return ErrorCode.INVALID_PARAMS;
-            }
-        }
+        AdminCommand command = privateToCommand(commandToDecrypt);
         if (command == null)
             return ErrorCode.INVALID_PARAMS;
         switch (command.type) {
@@ -68,14 +53,49 @@ public class KeyDatabaseImplementationRAM implements KeyDatabase {
         return ErrorCode.NON_ATTENDED;
     }
 
+    private AdminCommand privateToCommand(String commandToDecrypt) {
+        AdminCommand command = null;
+        if (mAdminPublicKey == null) {
+            try {
+                command = ContentEncrypter.decryptContent(AdminCommand.class, commandToDecrypt, mGson);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        } else {
+            try {
+                Crypter.Decrypter decrypter = Crypter.Decrypter.newFromRSAPublicKey(mAdminPublicKey);
+                command = ContentEncrypter.decryptContent(AdminCommand.class, commandToDecrypt, decrypter, mGson);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        return command;
+    }
+
     @Override
     public AdminCommand decryptAdminCommand(String commandToDecrypt) {
-        return null;
+        AdminCommand command = privateToCommand(commandToDecrypt);
+        return command;
     }
 
     @Override
     public void panic() {
-
+        if (mAdminPublicKey != null) {
+            synchronized (mKeyList) {
+                try {
+                    Crypter.Encrypter encrypter = Crypter.Encrypter.newFromRSAPublicKey(mAdminPublicKey);
+                    for (int i = 0; i < mKeyList.size(); i++) {
+                        KeyRecord k = mKeyList.get(i);
+                        if (!k.inPanic) {
+                            k.inPanic = true;
+                            //s = encrypter
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
     }
 
     @Override

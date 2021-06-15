@@ -6,20 +6,20 @@ import com.auth.authServer.model.AuthDatabase;
 import com.auth.interop.contents.*;
 import com.auth.interop.requests.RegistrationRequest;
 import com.google.gson.Gson;
+import com.jcore.crypto.Crypter;
 import com.jcore.utils.CipherUtils;
 import com.jcore.utils.TimeUtils;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.crypto.Cipher;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 public class AuthDatabaseImplementationRAM implements AuthDatabase {
 
     private class UserRecord {
-        private String userData;
+        private String protectedData;
+        private Map<String, String> resources;
         private String keyName;
         private String phoneHash;
         private String mailHash;
@@ -42,17 +42,26 @@ public class AuthDatabaseImplementationRAM implements AuthDatabase {
     }
 
     @Override
-    public ErrorCode setAlive(SetAlive value) {
-        return null;
+    public ErrorCode executeAdminCommand(String command, KeyDatabase keyDatabase) {
+        if (keyDatabase == null)
+            return ErrorCode.INVALID_PARAMS;
+        ErrorCode e = keyDatabase.executeAdminCommand(command);
+        if (e != ErrorCode.SUCCEDED && e != ErrorCode.NON_ATTENDED)
+            return e;
+        if (e == ErrorCode.NON_ATTENDED) {
+            AdminCommand cmd = keyDatabase.decryptAdminCommand(command);
+            if (cmd != null) {
+                switch (cmd.type) {
+                    case ADD_USER_FIELD:
+                        break;
+                }
+            }
+        }
+        return ErrorCode.SUCCEDED;
     }
 
     @Override
     public ErrorCode panic() {
-        return null;
-    }
-
-    @Override
-    public ErrorCode addUserPropertyField(EncryptedContent<AddUserField> content) {
         return null;
     }
 
@@ -77,39 +86,51 @@ public class AuthDatabaseImplementationRAM implements AuthDatabase {
     }
 
     @Override
-    public ErrorCode updateUser(User user, KeyDatabase keyDatabase, Validator validator) {
+    public ErrorCode updateUser(User.PublicData user, KeyDatabase keyDatabase, Validator validator) {
         UserRecord record = getUserRecord(validator);
         if (record != null) {
-            User new_user;
-            {
-                String json = mGson.toJson(user);
-                new_user = mGson.fromJson(json, User.class);
-            }
-            User old_user = keyDatabase.decrypt(record.userData, User.class, record.keyName);
-            if (!old_user.id.equals(new_user.id))
+            User.ProtectedData stored_user = keyDatabase.decrypt(record.protectedData, User.ProtectedData.class, record.keyName);
+            if (!stored_user.id.equals(user.id))
                 return ErrorCode.INVALID_USER;
 
-            new_user.type = old_user.type;
+            Map<String, String> values = new HashMap<>();
+            Map<String, UUID> resources = new HashMap<>();
 
-            String userData = keyDatabase.encrypt(user, record.keyName);
-            record.userData = userData;
-
-            if (new_user.type == User.Type.ADMIN && !StringUtils.equals(old_user.publicKey, new_user.publicKey)) {
-                try {
-                    AdminPublicKeyContainer container = new AdminPublicKeyContainer();
-                    AdminPublicKey content = new AdminPublicKey();
-                    content.key = new_user.publicKey;
-                    if (old_user.publicKey != null) {
-                        Cipher cipher = CipherUtils.generateDecrypterFromBase64PublicKey(old_user.publicKey, CipherUtils.Algorithm.RSA);
-                        container.setContent(content, cipher, mGson);
-                    } else
-                        container.setContent(content, mGson);
-
-                    keyDatabase.setAdminPublicKey(container);
-                } catch (Exception e) {
-                    e.printStackTrace();
+            if (user.values != null) {
+                for (Map.Entry<String, String> entry : user.values.entrySet()) {
+                    if (record.resources != null && record.resources.containsKey(entry.getKey())) {
+                        // It is a resource
+                        // TODO: 15/06/2021 Encrypt with a symmetric key
+                    } else {
+                        values.put(entry.getKey(), entry.getValue());
+                    }
                 }
             }
+
+            stored_user.values = values;
+            stored_user.resources = resources;
+
+            if (stored_user.type == User.Type.ADMIN && !StringUtils.equals(stored_user.publicKey, user.publicKey)) {
+                return ErrorCode.OPERATION_NOT_ALLOWED;
+//                try {
+//                    AdminPublicKeyContainer container = new AdminPublicKeyContainer();
+//                    AdminPublicKey content = new AdminPublicKey();
+//                    content.key = user.publicKey;
+//                    if (stored_user.publicKey != null) {
+//                        Crypter.Encrypter cipher = Crypter.Encrypter.newFromRSABase64PublicKey(stored_user.publicKey);
+//                        container.setContent(content, cipher, mGson);
+//                    } else
+//                        container.setContent(content, mGson);
+//                    keyDatabase.setAdminPublicKey(container);
+//                } catch (Exception e) {
+//                    e.printStackTrace();
+//                    return ErrorCode.INVALID_USER;
+//                }
+            }
+
+            stored_user.publicKey = user.publicKey;
+            String userData = keyDatabase.encrypt(stored_user, record.keyName);
+            record.protectedData = userData;
 
             return ErrorCode.SUCCEDED;
         }
@@ -117,11 +138,16 @@ public class AuthDatabaseImplementationRAM implements AuthDatabase {
     }
 
     @Override
-    public User getUser(KeyDatabase keyDatabase, Validator validator) {
+    public User.PublicData getUser(KeyDatabase keyDatabase, Validator validator) {
         UserRecord record = getUserRecord(validator);
         if (record != null) {
-            User user = keyDatabase.decrypt(record.userData, User.class, record.keyName);
-            return user;
+            User.ProtectedData user = keyDatabase.decrypt(record.protectedData, User.ProtectedData.class, record.keyName);
+            User.PublicData ret;
+            {
+                String json = mGson.toJson(user);
+                ret = mGson.fromJson(json, User.PublicData.class);
+            }
+            return ret;
         }
         return null;
     }
@@ -172,7 +198,7 @@ public class AuthDatabaseImplementationRAM implements AuthDatabase {
                     String userData;
                     String key_name = keyDatabase.getRandomPublicKeyName();
                     {
-                        User user = new User();
+                        User.ProtectedData user = new User.ProtectedData();
                         user.id = UUID.randomUUID();
                         user.setName("admin");
                         user.type = User.Type.ADMIN;
@@ -181,7 +207,7 @@ public class AuthDatabaseImplementationRAM implements AuthDatabase {
                     String sha256hex = DigestUtils.sha256Hex(validator.password);
 
                     UserRecord record = new UserRecord();
-                    record.userData = userData;
+                    record.protectedData = userData;
                     record.passwordHash = sha256hex;
                     record.keyName = key_name;
                     mUserList.add(record);
@@ -192,7 +218,7 @@ public class AuthDatabaseImplementationRAM implements AuthDatabase {
                 UserRecord user_record = getUserRecord(validator);
                 if (user_record != null) {
                     Token.UserData data = new Token.UserData();
-                    User user = keyDatabase.decrypt(user_record.userData, User.class, user_record.keyName);
+                    User.ProtectedData user = keyDatabase.decrypt(user_record.protectedData, User.ProtectedData.class, user_record.keyName);
                     data.values = user.values;
                     data.date = TimeUtils.now();
                     data.applicationCode = null;

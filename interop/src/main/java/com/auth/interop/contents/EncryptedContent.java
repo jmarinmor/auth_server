@@ -1,12 +1,10 @@
 package com.auth.interop.contents;
 
 import com.google.gson.Gson;
+import com.jcore.crypto.Crypter;
 
-import javax.crypto.Cipher;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 
 public class EncryptedContent<T> {
 
@@ -21,22 +19,22 @@ public class EncryptedContent<T> {
         }
     }
 
-    public EncryptedContent<T> setContent(T content, Cipher cipher1, Cipher cipher2, Gson serializer) throws Exception {
+    public EncryptedContent<T> setContent(T content, Crypter cipher1, Crypter cipher2, Gson serializer) throws Exception {
         this.content = ContentEncrypter.encryptContent(content, cipher1, cipher2, serializer);
         return this;
     }
 
-    public T getContent(Cipher cipher1, Cipher cipher2, Gson serializer) throws Exception {
+    public T getContent(Crypter cipher1, Crypter cipher2, Gson serializer) throws Exception {
         return ContentEncrypter.decryptContent((Class<T>)mPersistentClass, content, cipher1, cipher2, serializer);
     }
 
-    public EncryptedContent<T> setContent(T content, Cipher cipher, Gson serializer) throws Exception {
+    public EncryptedContent<T> setContent(T content, Crypter cipher, Gson serializer) throws Exception {
         this.content = ContentEncrypter.encryptContent(content, cipher, serializer);
         return this;
     }
 
-    public T getContent(Cipher cipher, Gson serializer) throws Exception {
-        return ContentEncrypter.decryptContent((Class<T>)mPersistentClass, content, serializer);
+    public T getContent(Crypter cipher, Gson serializer) throws Exception {
+        return ContentEncrypter.decryptContent((Class<T>)mPersistentClass, content, cipher, serializer);
     }
 
     public EncryptedContent<T> setContent(T content, Gson serializer) throws Exception {

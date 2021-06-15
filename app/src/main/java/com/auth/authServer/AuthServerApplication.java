@@ -8,6 +8,7 @@ import com.auth.authServer.model.implementations.KeyDatabaseImplementationRAM;
 import com.auth.interop.*;
 import com.auth.interop.contents.*;
 import com.google.gson.Gson;
+import com.jcore.crypto.Crypter;
 import com.jcore.utils.CipherUtils;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -42,7 +43,7 @@ public class AuthServerApplication {
 
 	private static void testDatabase() throws Exception {
 
-		if (true) {
+		if (false) {
 			final String ALGORITHM_RSA = "RSA";
 			final String ALGORITHM_RSA_CIPHER = "RSA";
 			final int ALGORITHM_RSA_KEYSIZE = 2048;
@@ -60,17 +61,26 @@ public class AuthServerApplication {
 
 			KeyPair pair = keyPairGeneratorClient.generateKeyPair();
 
-			byte[] plain = "hello00000000000hello00000000000hello00000000000hello00000000000hello00000000000hello00000000000hello00000000000hello00000000000hello00000000000hello00000000000hello00000000000hello00000000000hello00000000000hello00000000000hello00000000000hello00000000000".getBytes(StandardCharsets.UTF_8);
+			String source = "012345678901234567890123456789012345678901234567890123456789" +
+					"012345678901234567890123456789012345678901234567890123456789" +
+					"012345678901234567890123456789012345678901234567890123456789" +
+					"012345678901234567890123456789012345678901234567890123456789" +
+					"012345678901234567890123456789012345678901234567890123456789" +
+					"012345678901234567890123456789012345678901234567890123456789" +
+					"012345678901234567890123456789012345678901234567890123456789" +
+					"012345678901234567890123456789012345678901234567890123456789" +
+					"012345678901234567890123456789012345678901234567890123456789" +
+					"012345678901234567890123456789012345678901234567890123456789" +
+					"012345678901234567890123456789012345678901234567890123456789";
+			byte[] plain = source.getBytes(StandardCharsets.UTF_8);
 
 			Cipher encrypter = Cipher.getInstance(ALGORITHM_RSA_CIPHER);
 			encrypter.init(Cipher.ENCRYPT_MODE, pair.getPrivate());
-			int n = encrypter.getBlockSize();
-			n= encrypter.getOutputSize(25);
-			byte[] encrypted = encrypter.doFinal(plain);
-
 			Cipher decrypter = Cipher.getInstance(ALGORITHM_RSA_CIPHER);
 			decrypter.init(Cipher.DECRYPT_MODE, pair.getPublic());
-			byte[] decrypted = decrypter.doFinal(encrypted);
+
+			byte[] encrypted = CipherUtils.encrypt(encrypter, plain, 245);
+			byte[] decrypted = CipherUtils.encrypt(decrypter, encrypted, 256);
 
 			String s = new String(decrypted, StandardCharsets.US_ASCII);
 
@@ -81,10 +91,8 @@ public class AuthServerApplication {
 			KeyPair pair = CipherUtils.generateKeyPair(CipherUtils.Algorithm.RSA);
 			Gson gson = new Gson();
 
-			//Cipher encrypter = CipherUtils.getEncrypter(CipherUtils.Algorithm.RSA, pair.getPublic());
-			//Cipher decrypter = CipherUtils.getDecrypter(CipherUtils.Algorithm.RSA, pair.getPrivate());
-			Cipher encrypter = CipherUtils.getEncrypter(CipherUtils.Algorithm.RSA, pair.getPrivate());
-			Cipher decrypter = CipherUtils.getDecrypter(CipherUtils.Algorithm.RSA, pair.getPublic());
+			Crypter.Encrypter encrypter = Crypter.Encrypter.newFromRSAKey(pair.getPrivate());
+			Crypter.Decrypter decrypter = Crypter.Decrypter.newFromRSAKey(pair.getPublic());
 
 			EncryptedContent<AddUserField> f = new EncryptedContent<AddUserField>();
 			f.setContent(new AddUserField("Hola"), encrypter, gson);
@@ -97,7 +105,7 @@ public class AuthServerApplication {
 		KeyDatabase kdb = new KeyDatabaseImplementationRAM();
 		Token admin_token;
 		String adminPrivateKey;
-		Cipher adminCipher;
+		Crypter.Encrypter adminCipher;
 
 		// 1 - register admin user
 		{
@@ -117,46 +125,46 @@ public class AuthServerApplication {
 			{
 				KeyPair pair = CipherUtils.generateKeyPair(CipherUtils.Algorithm.RSA);
 				adminPrivateKey = CipherUtils.getPrivateKeyInBase64(pair);
-				adminCipher = CipherUtils.getEncrypter(CipherUtils.Algorithm.RSA, pair.getPrivate());
+				adminCipher = Crypter.Encrypter.newFromRSAKey(pair.getPrivate());
+
+				Validator validator = new Validator();
+				validator.password = "54321";
+				String public_key = CipherUtils.getPublicKeyInBase64(pair);
+				AdminCommand command = AdminCommand.newSetPublicKey(public_key);
+				adb.setUserPublicKey(public_key, kdb, validator);
+				{
+					String json = ContentEncrypter.encryptContent(command, Application.getGson());
+					adb.executeAdminCommand(json, kdb);
+				}
+				{
+					String json = ContentEncrypter.encryptContent(command, Application.getGson());
+					adb.executeAdminCommand(json, kdb);
+				}
+				{
+					String cmd = ContentEncrypter.encryptContent(command, adminCipher, Application.getGson());
+					adb.executeAdminCommand(cmd, kdb);
+				}
+			}
+			{
+				KeyPair pair = CipherUtils.generateKeyPair(CipherUtils.Algorithm.RSA);
 
 				Validator validator = new Validator();
 				validator.password = "54321";
 				String public_key = CipherUtils.getPublicKeyInBase64(pair);
 				adb.setUserPublicKey(public_key, kdb, validator);
-				adb.setUserPublicKey(public_key, kdb, validator);
 			}
 		}
 		{
-			String panicPrivateKey;
-			// 1 - set_panic_pk
-			{
-				KeyPair pair = CipherUtils.generateKeyPair(CipherUtils.Algorithm.RSA);
-				panicPrivateKey = CipherUtils.getPrivateKeyInBase64(pair);
-
-				EncryptedContent<PanicPublicKey> content = new EncryptedContent<>();
-				content.setContent(new PanicPublicKey(CipherUtils.getPublicKeyInBase64(pair)), adminCipher, Application.getGson());
-				kdb.setPanicPublicKey(content);
-			}
-			// 2 - gen_admin_pk
-			{
-				KeyPair pair;
-				{
-					EncryptedContent<GenerateKeyPair> content = new EncryptedContent<>();
-					content.setContent(new GenerateKeyPair(new Date(System.currentTimeMillis())), Application.getGson());
-					pair = kdb.generateKeyPair(content);
-				}
-				{
-					EncryptedContent<AdminPublicKey> content = new EncryptedContent<>();
-					content.setContent(new AdminPublicKey(CipherUtils.getPublicKeyInBase64(pair)), Application.getGson());
-					kdb.setAdminPublicKey(content);
-					//adminPrivateKey = CipherUtils.getPrivateKeyInBase64(pair);
-				}
-			}
 			// 3 - add_user_key
 			{
-				EncryptedContent<AddUserField> content = new EncryptedContent<>();
-				content.setContent(new AddUserField("name"), adminCipher, Application.getGson());
-				adb.addUserPropertyField(content);
+				AdminCommand command = AdminCommand.newAddUserField("name");
+				String cmd = ContentEncrypter.encryptContent(command, Application.getGson());
+				adb.executeAdminCommand(cmd, kdb);
+			}
+			{
+				AdminCommand command = AdminCommand.newAddUserField("name");
+				String cmd = ContentEncrypter.encryptContent(command, adminCipher, Application.getGson());
+				adb.executeAdminCommand(cmd, kdb);
 			}
 		}
 
@@ -199,7 +207,7 @@ public class AuthServerApplication {
 					Validator validator = new Validator();
 					validator.phone = "phone";
 					validator.password = "phone_pass";
-					User user = adb.getUser(kdb, validator);
+					User.PublicData user = adb.getUser(kdb, validator);
 
 					user.setName("MainApplication");
 					user.type = User.Type.APPLICATION;
@@ -243,7 +251,7 @@ public class AuthServerApplication {
 				Validator validator = new Validator();
 				validator.phone = "phone";
 				validator.password = "phone_pass";
-				User user = adb.getUser(kdb, validator);
+				User.PublicData user = adb.getUser(kdb, validator);
 
 				user.setName("User Name");
 				adb.updateUser(user, kdb, validator);
@@ -262,8 +270,8 @@ public class AuthServerApplication {
 			String pk_name = user_token.serverPublicKeyName;
 			NamedPublicKey pk = kdb.getServerPublicKey(pk_name);
 
-			Cipher decrypter1 = CipherUtils.generateDecrypterFromBase64PublicKey(pk.name, CipherUtils.Algorithm.RSA);
-			Cipher decrypter2 = CipherUtils.generateDecrypterFromBase64PrivateKey(appPrivateKey, CipherUtils.Algorithm.RSA);
+			Crypter.Decrypter decrypter1 = Crypter.Decrypter.newFromRSABase64PublicKey(pk.key);
+			Crypter.Decrypter decrypter2 = Crypter.Decrypter.newFromRSABase64PrivateKey(appPrivateKey);
 			Token.UserData user = ContentEncrypter.decryptContent(Token.UserData.class, user_token.userData, decrypter2, decrypter1, Application.getGson());
 			user = null;
 		}

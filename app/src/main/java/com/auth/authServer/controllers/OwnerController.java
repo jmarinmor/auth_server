@@ -22,11 +22,11 @@ public class OwnerController {
     public SetPanicPublicKeyRequest.Response setPanicPublicKeyCallback(@RequestBody @NonNull SetPanicPublicKeyRequest request) {
         SetPanicPublicKeyRequest.Response ret = new SetPanicPublicKeyRequest.Response();
 
-        try (KeyDatabase db = Application.getKeyDatabase()) {
-            ret.errorCode = db.setPanicPublicKey(request);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+//        try (KeyDatabase db = Application.getKeyDatabase()) {
+//            ret.errorCode = db.setPanicPublicKey(request);
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
         return ret;
     }
 }

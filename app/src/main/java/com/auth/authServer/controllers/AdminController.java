@@ -24,11 +24,11 @@ public class AdminController {
     public SetAdminPublicKeyRequest.Response setAdminPrivateKeyCallback(@RequestBody @NonNull SetAdminPublicKeyRequest request) {
         SetAdminPublicKeyRequest.Response ret = new SetAdminPublicKeyRequest.Response();
 
-        try (KeyDatabase db = Application.getKeyDatabase()) {
-            ret.errorCode = db.setAdminPublicKey(request);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+//        try (KeyDatabase db = Application.getKeyDatabase()) {
+//            ret.errorCode = db.setAdminPublicKey(request);
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
         return ret;
     }
 
@@ -57,12 +57,12 @@ public class AdminController {
     public AddUserFieldRequest.Response addUserFiledCallback(@RequestBody @NonNull AddUserFieldRequest request) {
         AddUserFieldRequest.Response ret = new AddUserFieldRequest.Response();
 
-        try (AuthDatabase db = Application.getAuthDatabase()) {
-            //byte[] value = Base64.getUrlDecoder().decode(request.addFieldObject);
-            ret.errorCode = db.addUserPropertyField(request);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+//        try (AuthDatabase db = Application.getAuthDatabase()) {
+//            //byte[] value = Base64.getUrlDecoder().decode(request.addFieldObject);
+//            ret.errorCode = db.addUserPropertyField(request);
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
         return ret;
     }
 

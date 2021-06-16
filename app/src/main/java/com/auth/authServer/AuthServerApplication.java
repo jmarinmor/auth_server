@@ -117,7 +117,7 @@ public class AuthServerApplication {
 			{
 				Validator validator = new Validator();
 				validator.password = "12345";
-				adb.updateUserValidator("54321", validator, Validator.fromPassword("54321"));
+				adb.updateUserValidator(validator, Validator.fromPassword("54321"));
 				admin_token = adb.generateTokenForUser(kdb, validator);
 				validator.password = "54321";
 				admin_token = adb.generateTokenForUser(kdb, validator);
@@ -178,22 +178,27 @@ public class AuthServerApplication {
 			// 4 - prepare_captcha
 			{
 				Captcha captcha = Captcha.newInstance(Application.DEBUG_MODE, "1", "11");
-				adb.registerInquiry(captcha);
+				adb.registerInquiry(captcha, Inquiry.Action.newRegisterUser(), kdb);
 			}
 			// 5 - register
+			Inquiry.Response register_response;
 			{
-				Validator validator = new Validator();
-				validator.phone = "phone";
-				validator.password = "phone_pass";
-				validator.inquiry = new Inquiry("1", "11");
-				validator.debugForceInternalInquiry = new Inquiry("2", "22");
-				adb.sendInquiry(Inquiry.Reason.REGISTER_VALIDATION, validator);
+				Inquiry inquiry = new Inquiry("1", "11");
+				Inquiry.Action action = Inquiry.Action.newValidateUser();
+
+				action.user = new User.PublicData();
+				action.user.setName("app");
+				action.validator = new Validator();
+				action.validator.phone = "phone";
+				action.validator.password = "phone_pass";
+				register_response = adb.verifyInquiry(inquiry, action, kdb);
 			}
 			// 6 - verify
 			{
-				Validator validator = new Validator();
-				validator.inquiry = new Inquiry("2", "22");
-				appId = adb.verifyUser(validator);
+				Inquiry inquiry = new Inquiry(register_response.debugDesiredResponse.inquiry,
+						register_response.debugDesiredResponse.desiredResult);
+
+				adb.verifyInquiry(inquiry, null, kdb);
 			}
 			// 7 - update_user
 			{
@@ -221,7 +226,7 @@ public class AuthServerApplication {
 				}
 			}
 		}
-
+/*
 		Token user_token;
 		{
 			// ** Register user
@@ -229,7 +234,7 @@ public class AuthServerApplication {
 			// 8 - prepare_captcha
 			{
 				Captcha captcha = Captcha.newInstance(Application.DEBUG_MODE, "3", "33");
-				adb.registerInquiry(captcha);
+				adb.registerInquiry(captcha, null);
 			}
 			// 9 - register
 			{
@@ -275,7 +280,7 @@ public class AuthServerApplication {
 			Token.UserData user = ContentEncrypter.decryptContent(Token.UserData.class, user_token.userData, decrypter2, decrypter1, Application.getGson());
 			user = null;
 		}
-
+*/
 	}
 
 }

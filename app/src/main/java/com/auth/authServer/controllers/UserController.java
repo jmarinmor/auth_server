@@ -31,7 +31,7 @@ public class UserController {
                 }
                 ret.inquiry = captcha.getInquiry();
                 ret.captchaImage = captcha.image;
-                db.registerInquiry(captcha);
+                db.registerInquiry(captcha, null, null);
             }
 
         } catch (Exception e) {
@@ -48,12 +48,12 @@ public class UserController {
 
         try (AuthDatabase db = Application.getAuthDatabase()) {
             Validator validator = new Validator();
-            validator.inquiry = registrationRequest.inquiry;
+            //validator.inquiry = registrationRequest.inquiry;
             validator.mail = registrationRequest.mail;
             validator.phone = registrationRequest.phone;
             validator.password = registrationRequest.password;
             // this functions send a mail or phone code
-            ret.errorCode = db.sendInquiry(Inquiry.Reason.REGISTER_VALIDATION, validator);
+            //ret.errorCode = db.sendInquiry(Inquiry.Reason.REGISTER_VALIDATION, validator);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -67,18 +67,18 @@ public class UserController {
         RequestResponse<VerifyUser.Response> ret = new RequestResponse<>();
 
         try (AuthDatabase db = Application.getAuthDatabase()) {
-            Validator validator = new Validator();
-            validator.inquiry = request.inquiry;
-            validator.mail = request.mail;
-            validator.phone = request.phone;
-            validator.password = request.password;
-            UUID id = db.verifyUser(validator);
-            if (id != null) {
-                ret.response = new VerifyUser.Response(id);
-                ret.errorCode = ErrorCode.SUCCEDED;
-            } else {
-                ret.errorCode = ErrorCode.INVALID_USER;
-            }
+//            Validator validator = new Validator();
+//            validator.inquiry = request.inquiry;
+//            validator.mail = request.mail;
+//            validator.phone = request.phone;
+//            validator.password = request.password;
+//            UUID id = db.verifyUser(validator);
+//            if (id != null) {
+//                ret.response = new VerifyUser.Response(id);
+//                ret.errorCode = ErrorCode.SUCCEDED;
+//            } else {
+//                ret.errorCode = ErrorCode.INVALID_USER;
+//            }
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -92,14 +92,14 @@ public class UserController {
 
         try (   AuthDatabase adb = Application.getAuthDatabase();
                 KeyDatabase kdb = Application.getKeyDatabase()) {
-            Validator validator = new Validator();
-            validator.inquiry = registrationRequest.inquiry;
-            validator.mail = registrationRequest.mail;
-            validator.phone = registrationRequest.phone;
-            validator.password = registrationRequest.password;
-            ret.response = adb.generateTokenForUser(kdb, validator);
-            if (ret.response == null || ret.response.userData == null)
-                ret.errorCode = ErrorCode.INVALID_USER;
+//            Validator validator = new Validator();
+//            validator.inquiry = registrationRequest.inquiry;
+//            validator.mail = registrationRequest.mail;
+//            validator.phone = registrationRequest.phone;
+//            validator.password = registrationRequest.password;
+//            ret.response = adb.generateTokenForUser(kdb, validator);
+//            if (ret.response == null || ret.response.userData == null)
+//                ret.errorCode = ErrorCode.INVALID_USER;
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -112,12 +112,12 @@ public class UserController {
 
         try (   AuthDatabase adb = Application.getAuthDatabase();
                 KeyDatabase kdb = Application.getKeyDatabase()) {
-            Validator validator = new Validator();
-            validator.inquiry = registration.inquiry;
-            validator.mail = registration.mail;
-            validator.phone = registration.phone;
-            validator.password = registration.password;
-            ret.errorCode = adb.updateUser(registration.user, kdb, validator);
+//            Validator validator = new Validator();
+//            validator.inquiry = registration.inquiry;
+//            validator.mail = registration.mail;
+//            validator.phone = registration.phone;
+//            validator.password = registration.password;
+//            ret.errorCode = adb.updateUser(registration.user, kdb, validator);
         } catch (Exception e) {
             e.printStackTrace();
         }

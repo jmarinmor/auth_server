@@ -17,7 +17,7 @@ import java.util.*;
 
 public class AuthDatabaseImplementationRAM implements AuthDatabase {
 
-    private class UserRecord {
+    private static class UserRecord {
         private String protectedData;
         private Map<String, String> resources;
         private String keyName;
@@ -26,6 +26,13 @@ public class AuthDatabaseImplementationRAM implements AuthDatabase {
         private String passwordHash;
     }
 
+    private static class InquiryRecord {
+        private String key;
+        private String value;
+        private Inquiry.Action action;
+    }
+
+    private static List<InquiryRecord> mInquiryList = new ArrayList<>();
     private static List<UserRecord> mUserList = new ArrayList<>();
     private static Gson mGson = new Gson();
 
@@ -71,18 +78,133 @@ public class AuthDatabaseImplementationRAM implements AuthDatabase {
     }
 
     @Override
-    public ErrorCode registerInquiry(Inquiry inquiry) {
+    public Inquiry.Response registerInquiry(Inquiry inquiry, Inquiry.Action action, KeyDatabase keyDatabase) {
+        Inquiry.Response response = new Inquiry.Response();
+        if (inquiry == null) {
+            response.errorCode = ErrorCode.INVALID_PARAMS;
+            return response;
+        }
+
+        InquiryRecord record = new InquiryRecord();
+        record.key = inquiry.inquiry;
+        record.value = inquiry.desiredResult;
+        record.action = action;
+        synchronized (mInquiryList) {
+            mInquiryList.add(record);
+        }
+        response.errorCode = ErrorCode.SUCCEDED;
+        if (USE_DEBUG_INFO) {
+            response.debugDesiredResponse = new Inquiry(inquiry.inquiry, inquiry.desiredResult);
+        }
+        return null;
+    }
+
+    private Inquiry executeAction(Inquiry.Action action, KeyDatabase keyDatabase) {
+        switch (action.type) {
+            case REGISTER_USER:
+                // Send verification code
+                return sendRegisterInquiry(action.user, action.validator, keyDatabase);
+            case VALIDATE_USER:
+                return validateUserInquiry(action.user, action.validator, keyDatabase);
+        }
         return null;
     }
 
     @Override
-    public ErrorCode sendInquiry(Inquiry.Reason reason, Validator validator) {
+    public Inquiry.Response verifyInquiry(Inquiry inquiry, Inquiry.Action action, KeyDatabase keyDatabase) {
+        Inquiry.Response response = new Inquiry.Response();
+        if (inquiry == null) {
+            response.errorCode = ErrorCode.INVALID_PARAMS;
+            return response;
+        }
+
+        synchronized (mInquiryList) {
+            for (int i = 0; i < mInquiryList.size(); i++) {
+                InquiryRecord record = mInquiryList.get(i);
+                if (StringUtils.equals(inquiry.inquiry, record.key)) {
+                    mInquiryList.remove(i);
+                    response.errorCode = ErrorCode.SUCCEDED;
+                    Inquiry inc = null;
+                    if (record.action != null)
+
+
+                    if (action == null)
+                        action = record.action;
+                    if (action != null) {
+                        switch (action.type) {
+                            case REGISTER_USER: {
+                                // Send verification code
+                                Inquiry inc = sendRegisterInquiry(action.user, action.validator, keyDatabase);
+                                if (USE_DEBUG_INFO)
+                                    response.debugDesiredResponse = inc;
+                                break;
+                            }
+                            case VALIDATE_USER: {
+                                Inquiry inc = validateUserInquiry(action.user, action.validator, keyDatabase);
+                                if (USE_DEBUG_INFO)
+                                    response.debugDesiredResponse = inc;
+                                break;
+                            }
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+        return response;
+    }
+
+    private Inquiry validateUserInquiry(User.PublicData user, Validator validator, KeyDatabase keyDatabase) {
+        User.ProtectedData usr = new User.ProtectedData();
+
+        convert(user, usr);
+        if (usr.type == User.Type.ADMIN)
+            usr.type = User.Type.USER;
+        usr.id = UUID.randomUUID();
+
+
+        String userData;
+        String key_name = keyDatabase.getRandomPublicKeyName();
+        userData = keyDatabase.encrypt(user, key_name);
+
+        String sha256hex = DigestUtils.sha256Hex(validator.password);
+        UserRecord record = new UserRecord();
+        record.protectedData = userData;
+        record.passwordHash = sha256hex;
+        record.keyName = key_name;
+        synchronized (mUserList) {
+            mUserList.add(record);
+        }
         return null;
     }
 
-    @Override
-    public UUID verifyUser(Validator validator) {
-        return null;
+    void convert(User.PublicData from, User.ProtectedData to) {
+        Map<String, String> values = new HashMap<>();
+        Map<String, UUID> resources = new HashMap<>();
+
+        if (from.values != null) {
+            for (Map.Entry<String, String> entry : from.values.entrySet()) {
+                //if (record.resources != null && record.resources.containsKey(entry.getKey())) {
+                //    // It is a resource
+                //    // TODO: 15/06/2021 Encrypt with a symmetric key
+                //} else {
+                    values.put(entry.getKey(), entry.getValue());
+                //}
+            }
+        }
+
+        to.values = values;
+        to.resources = resources;
+        to.publicKey = from.publicKey;
+    }
+
+    private Inquiry sendRegisterInquiry(User.PublicData user, Validator validator, KeyDatabase keyDatabase) {
+        Inquiry inquiry = Inquiry.generateNewInquiry();
+        Inquiry.Action action = Inquiry.Action.newValidateUser();
+        action.user = user;
+        action.validator = validator;
+        registerInquiry(inquiry, action, keyDatabase);
+        return inquiry;
     }
 
     @Override
@@ -153,7 +275,7 @@ public class AuthDatabaseImplementationRAM implements AuthDatabase {
     }
 
     @Override
-    public ErrorCode updateUserValidator(String newPassword, Validator validator, Validator newValidator){
+    public ErrorCode updateUserValidator(Validator validator, Validator newValidator){
         UserRecord user_record = getUserRecord(validator);
         if (user_record != null) {
             if (newValidator.password != null) {
@@ -243,4 +365,15 @@ public class AuthDatabaseImplementationRAM implements AuthDatabase {
     public void close() throws Exception {
 
     }
+
+    @Override
+    public ErrorCode setUserPublicKey(String publicKey, KeyDatabase keyDatabase, Validator validator) {
+        User.PublicData user = getUser(keyDatabase, validator);
+        if (user != null) {
+            user.publicKey = publicKey;
+            return updateUser(user, keyDatabase, validator);
+        } else
+            return ErrorCode.INVALID_USER;
+    }
+
 }

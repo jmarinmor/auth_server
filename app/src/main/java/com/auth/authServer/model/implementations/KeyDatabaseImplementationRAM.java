@@ -18,7 +18,6 @@ public class KeyDatabaseImplementationRAM implements KeyDatabase {
         private String name;
         private boolean inPanic;
         private String publicKeyBase64String;
-        private KeyPair keys;
         private Crypter.Encrypter encrypter;
         private Crypter.Decrypter decrypter;
     }
@@ -108,7 +107,6 @@ public class KeyDatabaseImplementationRAM implements KeyDatabase {
                     KeyPair pair = CipherUtils.generateKeyPair(CipherUtils.Algorithm.RSA);
                     KeyRecord record = new KeyRecord();
                     record.name = uuid.toString();
-                    record.keys = pair;
                     record.encrypter = Crypter.Encrypter.newFromRSAKey(pair.getPublic());
                     record.decrypter = Crypter.Decrypter.newFromRSAKey(pair.getPrivate());
                     record.publicKeyBase64String = CipherUtils.encodeToBase64String(pair.getPublic());

@@ -6,8 +6,6 @@ public class Validator {
     public String phone;
     public String password;
     public Token token;
-    public Inquiry inquiry;
-    public Inquiry debugForceInternalInquiry;
     public byte[] publicKey;
 
     public static Validator fromPassword(String password) {

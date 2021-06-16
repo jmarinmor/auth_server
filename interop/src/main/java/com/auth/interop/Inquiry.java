@@ -6,19 +6,40 @@ import java.util.Random;
 import java.util.UUID;
 
 public class Inquiry {
-    public enum Reason {
-        HUMAN_VERIFICATION(1),
-        REGISTER_VALIDATION(2),
-        UPDATE_USER(3),
-        GRANT_APPLICATION_FOR_USER(4);
+    public static class Action {
+        public enum Type {
+            REGISTER_USER(1),
+            VALIDATE_USER(2);
 
-        private int type;
-        Reason(int type) {this.type = type;}
+            private int type;
+            Type(int type) {this.type = type;}
+        }
+
+        public Type type;
+        public User.PublicData user;
+        public Validator validator;
+
+        public static Action newRegisterUser() {
+            Action action = new Action();
+            action.type = Type.REGISTER_USER;
+            return action;
+        }
+
+        public static Action newValidateUser() {
+            Action action = new Action();
+            action.type = Type.VALIDATE_USER;
+            return action;
+        }
+    }
+
+    public static class Response {
+        public ErrorCode errorCode;
+        public UUID id;
+        public Inquiry debugDesiredResponse;
     }
 
     private static final Random mRandom = new Random();
 
-    public Reason reason;
     public String inquiry;
     public String desiredResult;
 

@@ -14,7 +14,7 @@ public interface KeyDatabase extends AutoCloseable {
     void panic();
 
     String getRandomPublicKeyName();
-    KeyPair generateKeyPair(EncryptedContent<GenerateKeyPair> value);
+    KeyPair generateKeyPair();
     NamedPublicKey getServerPublicKey(String name);
 
     String encrypt(Object objectToEncrypt, String keyName);

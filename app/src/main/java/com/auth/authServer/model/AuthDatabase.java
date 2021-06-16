@@ -14,8 +14,8 @@ public interface AuthDatabase extends AutoCloseable {
     ErrorCode panic();
     UserFields getUserPropertyFields();
 
-    Inquiry.Response registerInquiry(Inquiry inquiry, Inquiry.Action action, KeyDatabase keyDatabase);
-    Inquiry.Response verifyInquiry(Inquiry inquiry, Inquiry.Action action, KeyDatabase keyDatabase);
+    Inquiry.Response registerInquiry(Inquiry inquiry, Inquiry.Action action, Inquiry.ActionParams params, KeyDatabase keyDatabase);
+    Inquiry.Response verifyInquiry(Inquiry inquiry, Inquiry.ActionParams params, KeyDatabase keyDatabase);
 
     ErrorCode updateUser(User.PublicData user, KeyDatabase keyDatabase, Validator validator);
     ErrorCode updateUserValidator(Validator validator, Validator newValidator);

@@ -31,7 +31,7 @@ public class UserController {
                 }
                 ret.inquiry = captcha.getInquiry();
                 ret.captchaImage = captcha.image;
-                db.registerInquiry(captcha, null, null);
+                //db.registerInquiry(captcha, null, null);
             }
 
         } catch (Exception e) {

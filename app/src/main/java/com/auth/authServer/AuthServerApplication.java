@@ -178,16 +178,17 @@ public class AuthServerApplication {
 			// 4 - prepare_captcha
 			{
 				Captcha captcha = Captcha.newInstance(Application.DEBUG_MODE, "1", "11");
-				adb.registerInquiry(captcha, Inquiry.Action.newRegisterUser(), kdb);
+				adb.registerInquiry(captcha, Inquiry.Action.REGISTER_USER, null, kdb);
 			}
 			// 5 - register
 			Inquiry.Response register_response;
 			{
 				Inquiry inquiry = new Inquiry("1", "11");
-				Inquiry.Action action = Inquiry.Action.newValidateUser();
+				Inquiry.ActionParams action = new Inquiry.ActionParams();
 
 				action.user = new User.PublicData();
 				action.user.setName("app");
+				action.user.type = User.Type.APPLICATION;
 				action.validator = new Validator();
 				action.validator.phone = "phone";
 				action.validator.password = "phone_pass";
@@ -202,12 +203,7 @@ public class AuthServerApplication {
 			}
 			// 7 - update_user
 			{
-				KeyPair pair;
-				{
-					EncryptedContent<GenerateKeyPair> content = new EncryptedContent<>();
-					content.setContent(new GenerateKeyPair(new Date(System.currentTimeMillis())), Application.getGson());
-					pair = kdb.generateKeyPair(content);
-				}
+				KeyPair pair = kdb.generateKeyPair();
 				{
 					Validator validator = new Validator();
 					validator.phone = "phone";
@@ -226,7 +222,7 @@ public class AuthServerApplication {
 				}
 			}
 		}
-/*
+
 		Token user_token;
 		{
 			// ** Register user
@@ -234,32 +230,49 @@ public class AuthServerApplication {
 			// 8 - prepare_captcha
 			{
 				Captcha captcha = Captcha.newInstance(Application.DEBUG_MODE, "3", "33");
-				adb.registerInquiry(captcha, null);
+				adb.registerInquiry(captcha, Inquiry.Action.REGISTER_USER, null);
 			}
 			// 9 - register
+			Inquiry.Response register_response;
 			{
-				Validator validator = new Validator();
-				validator.phone = "user";
-				validator.password = "user_pass";
-				validator.inquiry = new Inquiry("3", "33");
-				validator.debugForceInternalInquiry = new Inquiry("4", "44");
-				adb.sendInquiry(Inquiry.Reason.REGISTER_VALIDATION, validator);
+				Inquiry inquiry = new Inquiry("1", "11");
+				Inquiry.ActionParams action = new Inquiry.ActionParams();
+
+				action.user = new User.PublicData();
+				action.user.setName("user");
+				action.user.type = User.Type.USER;
+				action.validator = new Validator();
+				action.validator.phone = "phone1";
+				action.validator.password = "phone_pass1";
+				register_response = adb.verifyInquiry(inquiry, action, kdb);
 			}
 			// 10 - verify
 			{
-				Validator validator = new Validator();
-				validator.inquiry = new Inquiry("4", "44");
-				userId = adb.verifyUser(validator);
+				Inquiry inquiry = new Inquiry(register_response.debugDesiredResponse.inquiry,
+						register_response.debugDesiredResponse.desiredResult);
+
+				adb.verifyInquiry(inquiry, null, kdb);
 			}
 			// 11 - update_user
+			User.PublicData user;
 			{
 				Validator validator = new Validator();
 				validator.phone = "phone";
 				validator.password = "phone_pass";
-				User.PublicData user = adb.getUser(kdb, validator);
-
+				user = adb.getUser(kdb, validator);
 				user.setName("User Name");
 				adb.updateUser(user, kdb, validator);
+			}
+			{
+				Inquiry inquiry = new Inquiry("1", "11");
+				Inquiry.ActionParams params = new Inquiry.ActionParams();
+				params.userId = user.id;
+				params.applicationCode = applicationCode;
+				adb.registerInquiry(inquiry, Inquiry.Action.REGISTER_USER_TO_APPLICATION, params, kdb);
+			}
+			{
+				Inquiry inquiry = new Inquiry("1", "11");
+				adb.verifyInquiry(inquiry, null, kdb);
 			}
 			// 12 - generate_token
 			{
@@ -280,7 +293,7 @@ public class AuthServerApplication {
 			Token.UserData user = ContentEncrypter.decryptContent(Token.UserData.class, user_token.userData, decrypter2, decrypter1, Application.getGson());
 			user = null;
 		}
-*/
+
 	}
 
 }

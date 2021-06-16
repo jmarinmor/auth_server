@@ -124,7 +124,7 @@ public class KeyDatabaseImplementationRAM implements KeyDatabase {
     }
 
     @Override
-    public KeyPair generateKeyPair(EncryptedContent<GenerateKeyPair> value) {
+    public KeyPair generateKeyPair() {
         try {
             KeyPair pair = CipherUtils.generateKeyPair(CipherUtils.Algorithm.RSA);
             return pair;

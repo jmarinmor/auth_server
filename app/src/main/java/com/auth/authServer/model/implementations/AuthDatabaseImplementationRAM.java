@@ -30,6 +30,7 @@ public class AuthDatabaseImplementationRAM implements AuthDatabase {
         private String key;
         private String value;
         private Inquiry.Action action;
+        private Inquiry.ActionParams params;
     }
 
     private static List<InquiryRecord> mInquiryList = new ArrayList<>();
@@ -78,9 +79,9 @@ public class AuthDatabaseImplementationRAM implements AuthDatabase {
     }
 
     @Override
-    public Inquiry.Response registerInquiry(Inquiry inquiry, Inquiry.Action action, KeyDatabase keyDatabase) {
+    public Inquiry.Response registerInquiry(Inquiry inquiry, Inquiry.Action action, Inquiry.ActionParams params, KeyDatabase keyDatabase) {
         Inquiry.Response response = new Inquiry.Response();
-        if (inquiry == null) {
+        if (inquiry == null || action == null) {
             response.errorCode = ErrorCode.INVALID_PARAMS;
             return response;
         }
@@ -89,6 +90,7 @@ public class AuthDatabaseImplementationRAM implements AuthDatabase {
         record.key = inquiry.inquiry;
         record.value = inquiry.desiredResult;
         record.action = action;
+        record.params = params;
         synchronized (mInquiryList) {
             mInquiryList.add(record);
         }
@@ -96,22 +98,23 @@ public class AuthDatabaseImplementationRAM implements AuthDatabase {
         if (USE_DEBUG_INFO) {
             response.debugDesiredResponse = new Inquiry(inquiry.inquiry, inquiry.desiredResult);
         }
-        return null;
+        return response;
     }
 
-    private Inquiry executeAction(Inquiry.Action action, KeyDatabase keyDatabase) {
-        switch (action.type) {
+    private void executeAction(Inquiry.Action action, Inquiry.ActionParams params1, Inquiry.ActionParams params2, KeyDatabase keyDatabase, Inquiry.Response response) {
+        switch (action) {
             case REGISTER_USER:
                 // Send verification code
-                return sendRegisterInquiry(action.user, action.validator, keyDatabase);
+                sendRegisterInquiry(params1, params2, keyDatabase, response);
+                break;
             case VALIDATE_USER:
-                return validateUserInquiry(action.user, action.validator, keyDatabase);
+                validateUserInquiry(params1, params2, keyDatabase, response);
+                break;
         }
-        return null;
     }
 
     @Override
-    public Inquiry.Response verifyInquiry(Inquiry inquiry, Inquiry.Action action, KeyDatabase keyDatabase) {
+    public Inquiry.Response verifyInquiry(Inquiry inquiry, Inquiry.ActionParams params, KeyDatabase keyDatabase) {
         Inquiry.Response response = new Inquiry.Response();
         if (inquiry == null) {
             response.errorCode = ErrorCode.INVALID_PARAMS;
@@ -123,30 +126,7 @@ public class AuthDatabaseImplementationRAM implements AuthDatabase {
                 InquiryRecord record = mInquiryList.get(i);
                 if (StringUtils.equals(inquiry.inquiry, record.key)) {
                     mInquiryList.remove(i);
-                    response.errorCode = ErrorCode.SUCCEDED;
-                    Inquiry inc = null;
-                    if (record.action != null)
-
-
-                    if (action == null)
-                        action = record.action;
-                    if (action != null) {
-                        switch (action.type) {
-                            case REGISTER_USER: {
-                                // Send verification code
-                                Inquiry inc = sendRegisterInquiry(action.user, action.validator, keyDatabase);
-                                if (USE_DEBUG_INFO)
-                                    response.debugDesiredResponse = inc;
-                                break;
-                            }
-                            case VALIDATE_USER: {
-                                Inquiry inc = validateUserInquiry(action.user, action.validator, keyDatabase);
-                                if (USE_DEBUG_INFO)
-                                    response.debugDesiredResponse = inc;
-                                break;
-                            }
-                        }
-                    }
+                    executeAction(record.action, record.params, params, keyDatabase, response);
                     break;
                 }
             }
@@ -154,31 +134,7 @@ public class AuthDatabaseImplementationRAM implements AuthDatabase {
         return response;
     }
 
-    private Inquiry validateUserInquiry(User.PublicData user, Validator validator, KeyDatabase keyDatabase) {
-        User.ProtectedData usr = new User.ProtectedData();
-
-        convert(user, usr);
-        if (usr.type == User.Type.ADMIN)
-            usr.type = User.Type.USER;
-        usr.id = UUID.randomUUID();
-
-
-        String userData;
-        String key_name = keyDatabase.getRandomPublicKeyName();
-        userData = keyDatabase.encrypt(user, key_name);
-
-        String sha256hex = DigestUtils.sha256Hex(validator.password);
-        UserRecord record = new UserRecord();
-        record.protectedData = userData;
-        record.passwordHash = sha256hex;
-        record.keyName = key_name;
-        synchronized (mUserList) {
-            mUserList.add(record);
-        }
-        return null;
-    }
-
-    void convert(User.PublicData from, User.ProtectedData to) {
+    private ErrorCode convert(User.PublicData from, User.ProtectedData to) {
         Map<String, String> values = new HashMap<>();
         Map<String, UUID> resources = new HashMap<>();
 
@@ -196,15 +152,84 @@ public class AuthDatabaseImplementationRAM implements AuthDatabase {
         to.values = values;
         to.resources = resources;
         to.publicKey = from.publicKey;
+
+        if (to.type != from.type) {
+            if (to.type != User.Type.ADMIN)
+                to.type = from.type;
+            if (to.type == User.Type.APPLICATION) {
+                String sha256hex;
+                if (to.id != null)
+                    sha256hex = DigestUtils.sha256Hex(to.id.toString());
+                else if (from.id != null)
+                    sha256hex = DigestUtils.sha256Hex(from.id.toString());
+                else
+                    return ErrorCode.OPERATION_NOT_ALLOWED;
+                to.appCode = sha256hex;
+            }
+        }
+
+        if (to.type == User.Type.ADMIN && !StringUtils.equals(to.publicKey, from.publicKey))
+            return ErrorCode.OPERATION_NOT_ALLOWED;
+
+        return ErrorCode.SUCCEDED;
     }
 
-    private Inquiry sendRegisterInquiry(User.PublicData user, Validator validator, KeyDatabase keyDatabase) {
+    private void validateUserInquiry(Inquiry.ActionParams params1, Inquiry.ActionParams params2, KeyDatabase keyDatabase, Inquiry.Response response) {
+        Inquiry.ActionParams params = new Inquiry.ActionParams();
+        if (params1 != null && params1.user != null)
+            params.user = params1.user;
+        if (params2 != null && params2.user != null)
+            params.user = params2.user;
+
+        if (params1 != null && params1.validator != null)
+            params.validator = params1.validator;
+        if (params2 != null && params2.validator != null)
+            params.validator = params2.validator;
+
+        if (params.validator == null) {
+            response.errorCode = ErrorCode.INVALID_PARAMS;
+            return;
+        }
+
+        User.ProtectedData usr = new User.ProtectedData();
+        usr.id = UUID.randomUUID();
+        convert(params.user, usr);
+        if (usr.type == User.Type.ADMIN || usr.type == null)
+            usr.type = User.Type.USER;
+
+        String userData;
+        String key_name = keyDatabase.getRandomPublicKeyName();
+        userData = keyDatabase.encrypt(usr, key_name);
+
+        String sha256hex = DigestUtils.sha256Hex(params.validator.password);
+        UserRecord record = new UserRecord();
+        record.protectedData = userData;
+        record.passwordHash = sha256hex;
+        record.keyName = key_name;
+        synchronized (mUserList) {
+            mUserList.add(record);
+        }
+        response.id = usr.id;
+        response.errorCode = ErrorCode.SUCCEDED;
+    }
+
+    private void sendRegisterInquiry(Inquiry.ActionParams params1, Inquiry.ActionParams params2, KeyDatabase keyDatabase, Inquiry.Response response) {
+        Inquiry.ActionParams params = new Inquiry.ActionParams();
+        if (params1 != null && params1.user != null)
+            params.user = params1.user;
+        if (params2 != null && params2.user != null)
+            params.user = params2.user;
+
+        if (params1 != null && params1.validator != null)
+            params.validator = params1.validator;
+        if (params2 != null && params2.validator != null)
+            params.validator = params2.validator;
+
         Inquiry inquiry = Inquiry.generateNewInquiry();
-        Inquiry.Action action = Inquiry.Action.newValidateUser();
-        action.user = user;
-        action.validator = validator;
-        registerInquiry(inquiry, action, keyDatabase);
-        return inquiry;
+        Inquiry.Response r = registerInquiry(inquiry, Inquiry.Action.VALIDATE_USER, params, keyDatabase);
+        response.id = r.id;
+        response.errorCode = r.errorCode;
+        response.debugDesiredResponse = r.debugDesiredResponse;
     }
 
     @Override
@@ -215,42 +240,10 @@ public class AuthDatabaseImplementationRAM implements AuthDatabase {
             if (!stored_user.id.equals(user.id))
                 return ErrorCode.INVALID_USER;
 
-            Map<String, String> values = new HashMap<>();
-            Map<String, UUID> resources = new HashMap<>();
+            ErrorCode r = convert(user, stored_user);
+            if (r != ErrorCode.SUCCEDED)
+                return r;
 
-            if (user.values != null) {
-                for (Map.Entry<String, String> entry : user.values.entrySet()) {
-                    if (record.resources != null && record.resources.containsKey(entry.getKey())) {
-                        // It is a resource
-                        // TODO: 15/06/2021 Encrypt with a symmetric key
-                    } else {
-                        values.put(entry.getKey(), entry.getValue());
-                    }
-                }
-            }
-
-            stored_user.values = values;
-            stored_user.resources = resources;
-
-            if (stored_user.type == User.Type.ADMIN && !StringUtils.equals(stored_user.publicKey, user.publicKey)) {
-                return ErrorCode.OPERATION_NOT_ALLOWED;
-//                try {
-//                    AdminPublicKeyContainer container = new AdminPublicKeyContainer();
-//                    AdminPublicKey content = new AdminPublicKey();
-//                    content.key = user.publicKey;
-//                    if (stored_user.publicKey != null) {
-//                        Crypter.Encrypter cipher = Crypter.Encrypter.newFromRSABase64PublicKey(stored_user.publicKey);
-//                        container.setContent(content, cipher, mGson);
-//                    } else
-//                        container.setContent(content, mGson);
-//                    keyDatabase.setAdminPublicKey(container);
-//                } catch (Exception e) {
-//                    e.printStackTrace();
-//                    return ErrorCode.INVALID_USER;
-//                }
-            }
-
-            stored_user.publicKey = user.publicKey;
             String userData = keyDatabase.encrypt(stored_user, record.keyName);
             record.protectedData = userData;
 

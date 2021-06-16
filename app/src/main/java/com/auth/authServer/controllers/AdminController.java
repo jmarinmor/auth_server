@@ -37,7 +37,7 @@ public class AdminController {
         GenerateAdminKeysRequest.Response ret = new GenerateAdminKeysRequest.Response();
 
         try (KeyDatabase db = Application.getKeyDatabase()) {
-            KeyPair pair = db.generateKeyPair(request);
+            KeyPair pair = db.generateKeyPair();
             if (pair != null) {
                 ret.response = new GenerateAdminKeysRequest.Response.Content(
                         CipherUtils.getPublicKeyInBase64(pair),

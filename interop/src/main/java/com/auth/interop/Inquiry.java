@@ -6,29 +6,35 @@ import java.util.Random;
 import java.util.UUID;
 
 public class Inquiry {
-    public static class Action {
-        public enum Type {
-            REGISTER_USER(1),
-            VALIDATE_USER(2);
+    public enum Action {
+        REGISTER_USER(1),
+        VALIDATE_USER(2),
+        REGISTER_USER_TO_APPLICATION;
 
-            private int type;
-            Type(int type) {this.type = type;}
-        }
+        private int type;
+        Action(int type) {this.type = type;}
+    }
 
-        public Type type;
+    public static class ActionParams {
         public User.PublicData user;
+        public UUID userId;
+        public String applicationCode;
         public Validator validator;
 
-        public static Action newRegisterUser() {
-            Action action = new Action();
-            action.type = Type.REGISTER_USER;
-            return action;
+        public ActionParams() {
         }
 
-        public static Action newValidateUser() {
-            Action action = new Action();
-            action.type = Type.VALIDATE_USER;
-            return action;
+        public ActionParams(User.PublicData user) {
+            this.user = user;
+        }
+
+        public ActionParams(Validator validator) {
+            this.validator = validator;
+        }
+
+        public ActionParams(User.PublicData user, Validator validator) {
+            this.user = user;
+            this.validator = validator;
         }
     }
 

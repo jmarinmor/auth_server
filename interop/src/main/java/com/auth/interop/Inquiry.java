@@ -9,7 +9,7 @@ public class Inquiry {
     public enum Action {
         REGISTER_USER(1),
         VALIDATE_USER(2),
-        REGISTER_USER_TO_APPLICATION;
+        REGISTER_USER_TO_APPLICATION(3);
 
         private int type;
         Action(int type) {this.type = type;}

@@ -12,6 +12,9 @@ import com.jcore.crypto.Crypter;
 import com.jcore.utils.CipherUtils;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.Bean;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.JavaMailSenderImpl;
 
 import javax.crypto.Cipher;
 import java.nio.charset.StandardCharsets;
@@ -22,11 +25,30 @@ import java.security.Security;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.Properties;
 import java.util.UUID;
 
 @SpringBootApplication
 public class AuthServerApplication {
 	private static final boolean TEST_DATABASE = true;
+
+	@Bean
+	public JavaMailSender getJavaMailSender() {
+		JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
+		mailSender.setHost("smtp.gmail.com");
+		mailSender.setPort(587);
+
+		mailSender.setUsername("jmarindevel.tests@gmail.com");
+		mailSender.setPassword("q2w3E$R%");
+
+		Properties props = mailSender.getJavaMailProperties();
+		props.put("mail.transport.protocol", "smtp");
+		props.put("mail.smtp.auth", "true");
+		props.put("mail.smtp.starttls.enable", "true");
+		props.put("mail.debug", "true");
+
+		return mailSender;
+	}
 
 	// Order
 	public static void main(String[] args) {
@@ -230,7 +252,7 @@ public class AuthServerApplication {
 			// 8 - prepare_captcha
 			{
 				Captcha captcha = Captcha.newInstance(Application.DEBUG_MODE, "3", "33");
-				adb.registerInquiry(captcha, Inquiry.Action.REGISTER_USER, null);
+				adb.registerInquiry(captcha, Inquiry.Action.REGISTER_USER, null, kdb);
 			}
 			// 9 - register
 			Inquiry.Response register_response;

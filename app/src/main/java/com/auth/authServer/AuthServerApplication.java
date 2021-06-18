@@ -123,8 +123,8 @@ public class AuthServerApplication {
 		}
 
 
-		AuthDatabase adb = new AuthDatabaseImplementationRAM();
 		KeyDatabase kdb = new KeyDatabaseImplementationRAM();
+		AuthDatabase adb = new AuthDatabaseImplementationRAM(kdb);
 		Token admin_token;
 		String adminPrivateKey;
 		Crypter.Encrypter adminCipher;
@@ -134,15 +134,15 @@ public class AuthServerApplication {
 			{
 				Validator validator = new Validator();
 				validator.password = "12345";
-				admin_token = adb.generateTokenForUser(kdb, validator);
+				admin_token = adb.generateTokenForUser(validator);
 			}
 			{
 				Validator validator = new Validator();
 				validator.password = "12345";
 				adb.updateUserValidator(validator, Validator.fromPassword("54321"));
-				admin_token = adb.generateTokenForUser(kdb, validator);
+				admin_token = adb.generateTokenForUser(validator);
 				validator.password = "54321";
-				admin_token = adb.generateTokenForUser(kdb, validator);
+				admin_token = adb.generateTokenForUser(validator);
 			}
 			{
 				KeyPair pair = CipherUtils.generateKeyPair(CipherUtils.Algorithm.RSA);
@@ -153,18 +153,18 @@ public class AuthServerApplication {
 				validator.password = "54321";
 				String public_key = CipherUtils.getPublicKeyInBase64(pair);
 				AdminCommand command = AdminCommand.newSetPublicKey(public_key);
-				adb.setUserPublicKey(public_key, kdb, validator);
+				adb.setUserPublicKey(public_key, validator);
 				{
 					String json = ContentEncrypter.encryptContent(command, Application.getGson());
-					adb.executeAdminCommand(json, kdb);
+					adb.executeAdminCommand(json);
 				}
 				{
 					String json = ContentEncrypter.encryptContent(command, Application.getGson());
-					adb.executeAdminCommand(json, kdb);
+					adb.executeAdminCommand(json);
 				}
 				{
 					String cmd = ContentEncrypter.encryptContent(command, adminCipher, Application.getGson());
-					adb.executeAdminCommand(cmd, kdb);
+					adb.executeAdminCommand(cmd);
 				}
 			}
 			{
@@ -173,7 +173,7 @@ public class AuthServerApplication {
 				Validator validator = new Validator();
 				validator.password = "54321";
 				String public_key = CipherUtils.getPublicKeyInBase64(pair);
-				adb.setUserPublicKey(public_key, kdb, validator);
+				adb.setUserPublicKey(public_key, validator);
 			}
 		}
 		{
@@ -181,12 +181,12 @@ public class AuthServerApplication {
 			{
 				AdminCommand command = AdminCommand.newAddUserField("name");
 				String cmd = ContentEncrypter.encryptContent(command, Application.getGson());
-				adb.executeAdminCommand(cmd, kdb);
+				adb.executeAdminCommand(cmd);
 			}
 			{
 				AdminCommand command = AdminCommand.newAddUserField("name");
 				String cmd = ContentEncrypter.encryptContent(command, adminCipher, Application.getGson());
-				adb.executeAdminCommand(cmd, kdb);
+				adb.executeAdminCommand(cmd);
 			}
 		}
 
@@ -200,7 +200,7 @@ public class AuthServerApplication {
 			// 4 - prepare_captcha
 			{
 				Captcha captcha = Captcha.newInstance(Application.DEBUG_MODE, "1", "11");
-				adb.registerInquiry(captcha, Inquiry.Action.REGISTER_USER, null, kdb);
+				adb.registerInquiry(captcha, Inquiry.Action.REGISTER_USER, null);
 			}
 			// 5 - register
 			Inquiry.Response register_response;
@@ -214,14 +214,14 @@ public class AuthServerApplication {
 				action.validator = new Validator();
 				action.validator.phone = "phone";
 				action.validator.password = "phone_pass";
-				register_response = adb.verifyInquiry(inquiry, action, kdb);
+				register_response = adb.verifyInquiry(inquiry, action);
 			}
 			// 6 - verify
 			{
 				Inquiry inquiry = new Inquiry(register_response.debugDesiredResponse.inquiry,
 						register_response.debugDesiredResponse.desiredResult);
 
-				adb.verifyInquiry(inquiry, null, kdb);
+				adb.verifyInquiry(inquiry, null);
 			}
 			// 7 - update_user
 			{
@@ -230,7 +230,7 @@ public class AuthServerApplication {
 					Validator validator = new Validator();
 					validator.phone = "phone";
 					validator.password = "phone_pass";
-					User.PublicData user = adb.getUser(kdb, validator);
+					User.PublicData user = adb.getUser(validator);
 
 					user.setName("MainApplication");
 					user.type = User.Type.APPLICATION;
@@ -238,8 +238,8 @@ public class AuthServerApplication {
 					user.appFields.add(User.NAME_FIELD);
 					user.publicKey = CipherUtils.getPublicKeyInBase64(pair);
 					appPrivateKey = CipherUtils.getPrivateKeyInBase64(pair);
-					adb.updateUser(user, kdb, validator);
-					user = adb.getUser(kdb, validator);
+					adb.updateUser(user, validator);
+					user = adb.getUser(validator);
 					applicationCode = user.appCode;
 				}
 			}
@@ -252,7 +252,7 @@ public class AuthServerApplication {
 			// 8 - prepare_captcha
 			{
 				Captcha captcha = Captcha.newInstance(Application.DEBUG_MODE, "3", "33");
-				adb.registerInquiry(captcha, Inquiry.Action.REGISTER_USER, null, kdb);
+				adb.registerInquiry(captcha, Inquiry.Action.REGISTER_USER, null);
 			}
 			// 9 - register
 			Inquiry.Response register_response;
@@ -266,14 +266,14 @@ public class AuthServerApplication {
 				action.validator = new Validator();
 				action.validator.phone = "phone1";
 				action.validator.password = "phone_pass1";
-				register_response = adb.verifyInquiry(inquiry, action, kdb);
+				register_response = adb.verifyInquiry(inquiry, action);
 			}
 			// 10 - verify
 			{
 				Inquiry inquiry = new Inquiry(register_response.debugDesiredResponse.inquiry,
 						register_response.debugDesiredResponse.desiredResult);
 
-				adb.verifyInquiry(inquiry, null, kdb);
+				adb.verifyInquiry(inquiry, null);
 			}
 			// 11 - update_user
 			User.PublicData user;
@@ -281,20 +281,20 @@ public class AuthServerApplication {
 				Validator validator = new Validator();
 				validator.phone = "phone";
 				validator.password = "phone_pass";
-				user = adb.getUser(kdb, validator);
+				user = adb.getUser(validator);
 				user.setName("User Name");
-				adb.updateUser(user, kdb, validator);
+				adb.updateUser(user, validator);
 			}
 			{
 				Inquiry inquiry = new Inquiry("1", "11");
 				Inquiry.ActionParams params = new Inquiry.ActionParams();
 				params.userId = user.id;
 				params.applicationCode = applicationCode;
-				adb.registerInquiry(inquiry, Inquiry.Action.REGISTER_USER_TO_APPLICATION, params, kdb);
+				adb.registerInquiry(inquiry, Inquiry.Action.REGISTER_USER_TO_APPLICATION, params);
 			}
 			{
 				Inquiry inquiry = new Inquiry("1", "11");
-				adb.verifyInquiry(inquiry, null, kdb);
+				adb.verifyInquiry(inquiry, null);
 			}
 			// 12 - generate_token
 			{
@@ -302,7 +302,7 @@ public class AuthServerApplication {
 				validator.phone = "phone";
 				validator.password = "phone_pass";
 				validator.applicationCode = applicationCode;
-				user_token = adb.generateTokenForUser(kdb, validator);
+				user_token = adb.generateTokenForUser(validator);
 			}
 		}
 

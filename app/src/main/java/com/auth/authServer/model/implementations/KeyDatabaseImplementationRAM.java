@@ -7,6 +7,7 @@ import com.auth.interop.contents.*;
 import com.google.gson.Gson;
 import com.jcore.crypto.Crypter;
 import com.jcore.utils.CipherUtils;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.security.KeyPair;
@@ -14,21 +15,17 @@ import java.util.*;
 
 public class KeyDatabaseImplementationRAM implements KeyDatabase {
 
-    private static class KeyRecord {
-        private String name;
-        private boolean inPanic;
-        private String publicKeyBase64String;
-        private Crypter.Encrypter encrypter;
-        private Crypter.Decrypter decrypter;
-    }
-
     public final int MAX_KEY_COUNT = 2;
 
-    private static byte[] mAdminPublicKey;
-    private static Random mRandom = new Random();
-    private static List<KeyRecord> mKeyList = new ArrayList<>();
+    private byte[] mAdminPublicKey;
+    private Random mRandom = new Random();
 
-    private static Gson mGson = new Gson();
+    private Map<String, byte[]> mPublicKey = new HashMap();
+    private Map<String, byte[]> mPrivateKey = new HashMap();
+    private Map<String, byte[]> mEncryptedPrivateKey = new HashMap();
+    private boolean mInPanic;
+
+    private Gson mGson = new Gson();
 
     @Override
     public ErrorCode executeAdminCommand(String commandToDecrypt) {
@@ -79,19 +76,22 @@ public class KeyDatabaseImplementationRAM implements KeyDatabase {
 
     @Override
     public void panic() {
+        mInPanic = true;
         if (mAdminPublicKey != null) {
-            synchronized (mKeyList) {
-                try {
-                    Crypter.Encrypter encrypter = Crypter.Encrypter.newFromRSAPublicKey(mAdminPublicKey);
-                    for (int i = 0; i < mKeyList.size(); i++) {
-                        KeyRecord k = mKeyList.get(i);
-                        if (!k.inPanic) {
-                            k.inPanic = true;
-                            //s = encrypter
+            synchronized (mPrivateKey) {
+                synchronized (mEncryptedPrivateKey) {
+                    try {
+                        Crypter.Encrypter encrypter = Crypter.Encrypter.newFromRSAPublicKey(mAdminPublicKey);
+
+                        for (Map.Entry<String, byte[]> entry : mPrivateKey.entrySet()) {
+                            String sha256hex = DigestUtils.sha256Hex(entry.getKey());
+                            byte[] encrypted = encrypter.crypt(entry.getValue());
+                            mEncryptedPrivateKey.put(sha256hex, encrypted);
                         }
+                        mPrivateKey.clear();
+                    } catch (Exception e) {
+                        e.printStackTrace();
                     }
-                } catch (Exception e) {
-                    e.printStackTrace();
                 }
             }
         }
@@ -99,27 +99,38 @@ public class KeyDatabaseImplementationRAM implements KeyDatabase {
 
     @Override
     public String getRandomPublicKeyName() {
-        synchronized (mKeyList) {
+        synchronized (mEncryptedPrivateKey) {
+            if (mInPanic || mEncryptedPrivateKey.size() > 0)
+                return null;
+        }
+
+        synchronized (mPublicKey) {
+            Set<String> set = mPublicKey.keySet();
+            ArrayList<String> list = new ArrayList<>(set);
+            String name;
             int key_index = -1;
-            if (mKeyList.size() < MAX_KEY_COUNT) {
+            if (list.size() < MAX_KEY_COUNT) {
                 try {
                     UUID uuid = UUID.randomUUID();
                     KeyPair pair = CipherUtils.generateKeyPair(CipherUtils.Algorithm.RSA);
-                    KeyRecord record = new KeyRecord();
-                    record.name = uuid.toString();
-                    record.encrypter = Crypter.Encrypter.newFromRSAKey(pair.getPublic());
-                    record.decrypter = Crypter.Decrypter.newFromRSAKey(pair.getPrivate());
-                    record.publicKeyBase64String = CipherUtils.encodeToBase64String(pair.getPublic());
-                    key_index = mKeyList.size();
-                    mKeyList.add(record);
+                    name = uuid.toString();
+                    String private_name = DigestUtils.sha256Hex(name.toString());
+
+                    byte[] public_key = pair.getPublic().getEncoded();
+                    byte[] private_key = pair.getPrivate().getEncoded();
+                    mPublicKey.put(name, public_key);
+                    synchronized (mPrivateKey) {
+                        mPrivateKey.put(private_name, private_key);
+                    }
                 } catch (Exception e) {
                     e.printStackTrace();
                     return null;
                 }
             } else {
                 key_index = mRandom.nextInt() % MAX_KEY_COUNT;
+                name = list.get(key_index);
             }
-            return mKeyList.get(key_index).name;
+            return name;
         }
     }
 
@@ -136,55 +147,63 @@ public class KeyDatabaseImplementationRAM implements KeyDatabase {
 
     @Override
     public NamedPublicKey getServerPublicKey(String name) {
-        synchronized (mKeyList) {
-            KeyRecord k = getKeyRecord(name);
-            if (k != null) {
-                NamedPublicKey ret = new NamedPublicKey();
-                ret.key = k.publicKeyBase64String;
-                return ret;
-            }
+        byte[] key = getPublicKeyBytes(name);
+        if (key != null) {
+            NamedPublicKey ret = new NamedPublicKey();
+            ret.key = CipherUtils.encodeBytesToBase64String(key);
+            return ret;
         }
         return null;
     }
 
-    public KeyRecord getKeyRecord(String keyName) {
-        for (KeyRecord k : mKeyList)
-            if (StringUtils.equals(keyName, k.name))
-                return k;
-        return null;
+    public byte[] getPublicKeyBytes(String keyName) {
+        synchronized (mPublicKey) {
+            byte[] key = mPublicKey.get(keyName);
+            if (key == null) {
+                //return ContentEncrypter.encryptContent(objectToEncrypt, mGson);
+                return null;
+            } else {
+                return key;
+            }
+        }
     }
 
     @Override
     public String encrypt(Object objectToEncrypt, String keyName) {
-        synchronized (mKeyList) {
-            KeyRecord k = getKeyRecord(keyName);
-            if (k != null) {
-                try {
-                    if (k.encrypter != null)
-                        return ContentEncrypter.encryptContent(objectToEncrypt, k.encrypter, mGson);
-                    else
-                        return ContentEncrypter.encryptContent(objectToEncrypt, mGson);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+        byte[] bytes = getPublicKeyBytes(keyName);
+        if (bytes != null) {
+            try {
+                Crypter.Encrypter encrypter = Crypter.Encrypter.newFromRSAPublicKey(bytes);
+                return ContentEncrypter.encryptContent(objectToEncrypt, encrypter, mGson);
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
         return null;
     }
 
+    public byte[] getPrivateKeyBytes(String keyName) {
+        synchronized (mPrivateKey) {
+            String private_name = DigestUtils.sha256Hex(keyName);
+            byte[] key = mPrivateKey.get(private_name);
+            if (key == null) {
+                return null;
+                //return ContentEncrypter.decryptContent(aClass, objectToDecrypt, mGson);
+            } else {
+                return key;
+            }
+        }
+    }
+
     @Override
     public <T> T decrypt(String objectToDecrypt, Class<T> aClass, String keyName) {
-        synchronized (mKeyList) {
-            KeyRecord k = getKeyRecord(keyName);
-            if (k != null) {
-                try {
-                    if (k.decrypter != null)
-                        return ContentEncrypter.decryptContent(aClass, objectToDecrypt, k.decrypter, mGson);
-                    else
-                        return ContentEncrypter.decryptContent(aClass, objectToDecrypt, mGson);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+        byte[] bytes = getPrivateKeyBytes(keyName);
+        if (bytes != null) {
+            try {
+                Crypter.Decrypter decrypter = Crypter.Decrypter.newFromRSAPrivateKey(bytes);
+                return ContentEncrypter.decryptContent(aClass, objectToDecrypt, decrypter, mGson);
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
         return null;

@@ -9,16 +9,13 @@ public class Application {
     public static final boolean DEBUG_MODE = true;
 
     private static ConnectionPool<AuthDatabase> mAuthDatabase = null;
-    private static ConnectionPool<KeyDatabase> mKeyDatabase = null;
+    private static KeyDatabase mKeyDatabase = null;
     private final static Gson mGson = new Gson();
 
     static {
+        mKeyDatabase = new KeyDatabaseImplementationRAM();
         mAuthDatabase = new ConnectionPool<>(2, (String key, boolean isFirst) -> {
-            return new AuthDatabaseImplementationRAM();
-        });
-
-        mKeyDatabase = new ConnectionPool<>(2, (String key, boolean isFirst) -> {
-            return new KeyDatabaseImplementationRAM();
+            return new AuthDatabaseImplementationRAM(mKeyDatabase);
         });
     }
 
@@ -26,7 +23,7 @@ public class Application {
         return mAuthDatabase.get("").value();
     }
     public static KeyDatabase getKeyDatabase() throws Exception {
-        return mKeyDatabase.get("").value();
+        return mKeyDatabase;
     }
 
     public static Gson getGson() {

@@ -10,18 +10,18 @@ public interface AuthDatabase extends AutoCloseable {
     boolean USE_DEBUG_INFO = true;
 
     // Admin functions
-    ErrorCode executeAdminCommand(String command, KeyDatabase keyDatabase);
+    ErrorCode executeAdminCommand(String command);
     ErrorCode panic();
     UserFields getUserPropertyFields();
 
-    Inquiry.Response registerInquiry(Inquiry inquiry, Inquiry.Action action, Inquiry.ActionParams params, KeyDatabase keyDatabase);
-    Inquiry.Response verifyInquiry(Inquiry inquiry, Inquiry.ActionParams params, KeyDatabase keyDatabase);
+    Inquiry.Response registerInquiry(Inquiry inquiry, Inquiry.Action action, Inquiry.ActionParams params);
+    Inquiry.Response verifyInquiry(Inquiry inquiry, Inquiry.ActionParams params);
 
-    ErrorCode updateUser(User.PublicData user, KeyDatabase keyDatabase, Validator validator);
+    ErrorCode updateUser(User.PublicData user, Validator validator);
     ErrorCode updateUserValidator(Validator validator, Validator newValidator);
-    ErrorCode setUserPublicKey(String publicKey, KeyDatabase keyDatabase, Validator validator);
-    User.PublicData getUser(KeyDatabase keyDatabase, Validator validator);
+    ErrorCode setUserPublicKey(String publicKey, Validator validator);
+    User.PublicData getUser(Validator validator);
 
     ErrorCode grantApplicationForUser(Validator validator, String appCode);
-    Token generateTokenForUser(KeyDatabase keyDatabase, Validator validator);
+    Token generateTokenForUser(Validator validator);
 }

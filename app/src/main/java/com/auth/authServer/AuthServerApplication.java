@@ -20,10 +20,7 @@ import javax.crypto.Cipher;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
-import java.security.Provider;
-import java.security.Security;
 import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.Properties;
 import java.util.UUID;
@@ -116,9 +113,9 @@ public class AuthServerApplication {
 			Crypter.Encrypter encrypter = Crypter.Encrypter.newFromRSAKey(pair.getPrivate());
 			Crypter.Decrypter decrypter = Crypter.Decrypter.newFromRSAKey(pair.getPublic());
 
-			EncryptedContent<AddUserField> f = new EncryptedContent<AddUserField>();
-			f.setContent(new AddUserField("Hola"), encrypter, gson);
-			AddUserField c = f.getContent(decrypter, gson);
+			EncryptedContent<AlterUserField> f = new EncryptedContent<AlterUserField>();
+			f.setContent(new AlterUserField("Hola", new UserFields.FieldProperties(UserFields.FieldType.STRING_TYPE)), encrypter, gson);
+			AlterUserField c = f.getContent(decrypter, gson);
 			c = null;
 		}
 
@@ -179,12 +176,12 @@ public class AuthServerApplication {
 		{
 			// 3 - add_user_key
 			{
-				AdminCommand command = AdminCommand.newAddUserField("name");
+				AdminCommand command = AdminCommand.newAddUserField("name", new UserFields.FieldProperties(UserFields.FieldType.STRING_TYPE));
 				String cmd = ContentEncrypter.encryptContent(command, Application.getGson());
 				adb.executeAdminCommand(cmd);
 			}
 			{
-				AdminCommand command = AdminCommand.newAddUserField("name");
+				AdminCommand command = AdminCommand.newAddUserField("name", new UserFields.FieldProperties(UserFields.FieldType.STRING_TYPE));
 				String cmd = ContentEncrypter.encryptContent(command, adminCipher, Application.getGson());
 				adb.executeAdminCommand(cmd);
 			}

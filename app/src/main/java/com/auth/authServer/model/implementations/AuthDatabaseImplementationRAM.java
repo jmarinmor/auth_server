@@ -2,41 +2,21 @@ package com.auth.authServer.model.implementations;
 
 import com.auth.authServer.model.KeyDatabase;
 import com.auth.interop.*;
-import com.auth.authServer.model.AuthDatabase;
 import com.auth.interop.contents.*;
-import com.auth.interop.requests.RegistrationRequest;
 import com.google.gson.Gson;
-import com.jcore.crypto.Crypter;
-import com.jcore.utils.CipherUtils;
 import com.jcore.utils.TimeUtils;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 
-import javax.crypto.Cipher;
 import java.util.*;
 
-public class AuthDatabaseImplementationRAM implements AuthDatabase {
-
-    private static class UserRecord {
-        private String protectedData;
-        private Map<String, String> resources;
-        private String keyName;
-        private String phoneHash;
-        private String mailHash;
-        private String passwordHash;
-    }
-
-    private static class InquiryRecord {
-        private String key;
-        private String value;
-        private Inquiry.Action action;
-        private Inquiry.ActionParams params;
-    }
+public class AuthDatabaseImplementationRAM extends AuthDatabaseImplementation {
 
     private static List<InquiryRecord> mInquiryList = new ArrayList<>();
     private static List<UserRecord> mUserList = new ArrayList<>();
-    private static Gson mGson = new Gson();
-    private KeyDatabase mKeyDatabase;
+    private static Map<String, UserFields.FieldProperties> mUserFields = new HashMap<>();
+    private static boolean mUpdatingUsers;
+    private static double mUpdateUsersProgression;
 
 
     public AuthDatabaseImplementationRAM(KeyDatabase keyDatabase) {
@@ -44,27 +24,54 @@ public class AuthDatabaseImplementationRAM implements AuthDatabase {
     }
 
     @Override
-    public ErrorCode executeAdminCommand(String command) {
-        if (mKeyDatabase == null)
-            return ErrorCode.INVALID_PARAMS;
-        ErrorCode e = mKeyDatabase.executeAdminCommand(command);
-        if (e != ErrorCode.SUCCEDED && e != ErrorCode.NON_ATTENDED)
-            return e;
-        if (e == ErrorCode.NON_ATTENDED) {
-            AdminCommand cmd = mKeyDatabase.decryptAdminCommand(command);
-            if (cmd != null) {
-                switch (cmd.type) {
-                    case ADD_USER_FIELD:
-                        break;
-                }
-            }
+    protected boolean containsUserField(String name) {
+        synchronized (mUserFields) {
+            return mUserFields.containsKey(name);
         }
-        return ErrorCode.SUCCEDED;
+    }
+
+    @Override
+    protected double getUpdateUsersProgression() {
+        return mUpdateUsersProgression;
+    }
+
+    @Override
+    protected void performAlterFieldInAllUsers(AlterUserField cmd, boolean add, boolean delete, boolean update) {
+        mUpdateUsersProgression = 0.0;
+        mUpdatingUsers = true;
+        new Thread(() -> {
+            synchronized (mUserList) {
+                if (add) {
+                    mUserFields.put(cmd.name, cmd.properties);
+                    for (int i = 0; i < mUserList.size(); i++) {
+                        UserRecord record = mUserList.get(i);
+                        performUpdateUserRecordField(cmd, record);
+                        mUpdateUsersProgression = ((double) i) / ((double) mUserList.size());
+                    }
+                } else if (update) {
+                    for (int i = 0; i < mUserList.size(); i++) {
+                        UserRecord record = mUserList.get(i);
+                        performCheckUserRecordField(cmd, record);
+                        mUpdateUsersProgression = ((double) i) / ((double) mUserList.size());
+                    }
+                } else if (delete) {
+                    for (int i = 0; i < mUserList.size(); i++) {
+                        UserRecord record = mUserList.get(i);
+                        performDeleteUserRecordField(cmd, record);
+                        mUpdateUsersProgression = ((double) i) / ((double) mUserList.size());
+                    }
+                }
+
+                mUpdateUsersProgression = 1.0;
+                mUpdatingUsers = false;
+            }
+        }).start();
     }
 
     @Override
     public ErrorCode panic() {
-        return null;
+        mKeyDatabase.panic();
+        return ErrorCode.SUCCEDED;
     }
 
     @Override
@@ -128,46 +135,6 @@ public class AuthDatabaseImplementationRAM implements AuthDatabase {
         return response;
     }
 
-    private ErrorCode convert(User.PublicData from, User.ProtectedData to) {
-        Map<String, String> values = new HashMap<>();
-        Map<String, UUID> resources = new HashMap<>();
-
-        if (from.values != null) {
-            for (Map.Entry<String, String> entry : from.values.entrySet()) {
-                //if (record.resources != null && record.resources.containsKey(entry.getKey())) {
-                //    // It is a resource
-                //    // TODO: 15/06/2021 Encrypt with a symmetric key
-                //} else {
-                    values.put(entry.getKey(), entry.getValue());
-                //}
-            }
-        }
-
-        to.values = values;
-        to.resources = resources;
-        to.publicKey = from.publicKey;
-
-        if (to.type != from.type) {
-            if (to.type != User.Type.ADMIN)
-                to.type = from.type;
-            if (to.type == User.Type.APPLICATION) {
-                String sha256hex;
-                if (to.id != null)
-                    sha256hex = DigestUtils.sha256Hex(to.id.toString());
-                else if (from.id != null)
-                    sha256hex = DigestUtils.sha256Hex(from.id.toString());
-                else
-                    return ErrorCode.OPERATION_NOT_ALLOWED;
-                to.appCode = sha256hex;
-            }
-        }
-
-        if (to.type == User.Type.ADMIN && !StringUtils.equals(to.publicKey, from.publicKey))
-            return ErrorCode.OPERATION_NOT_ALLOWED;
-
-        return ErrorCode.SUCCEDED;
-    }
-
     private void validateUserInquiry(Inquiry.ActionParams params1, Inquiry.ActionParams params2, Inquiry.Response response) {
         Inquiry.ActionParams params = new Inquiry.ActionParams();
         if (params1 != null && params1.user != null)
@@ -228,27 +195,18 @@ public class AuthDatabaseImplementationRAM implements AuthDatabase {
 
     @Override
     public ErrorCode updateUser(User.PublicData user, Validator validator) {
+        if (user == null)
+            return ErrorCode.INVALID_USER;
+        if (validator == null)
+            return ErrorCode.INVALID_VALIDATOR;
+
         UserRecord record = getUserRecord(validator);
-        if (record != null) {
-            User.ProtectedData stored_user = mKeyDatabase.decrypt(record.protectedData, User.ProtectedData.class, record.keyName);
-            if (!stored_user.id.equals(user.id))
-                return ErrorCode.INVALID_USER;
-
-            ErrorCode r = convert(user, stored_user);
-            if (r != ErrorCode.SUCCEDED)
-                return r;
-
-            String userData = mKeyDatabase.encrypt(stored_user, record.keyName);
-            record.protectedData = userData;
-
-            return ErrorCode.SUCCEDED;
-        }
+        if (record != null)
+            return performUpdateUserRecord(user, record);
         return ErrorCode.INVALID_USER;
     }
 
-    @Override
-    public User.PublicData getUser(Validator validator) {
-        UserRecord record = getUserRecord(validator);
+    private User.PublicData getUserPublicData(UserRecord record) {
         if (record != null) {
             User.ProtectedData user = mKeyDatabase.decrypt(record.protectedData, User.ProtectedData.class, record.keyName);
             User.PublicData ret;
@@ -259,6 +217,12 @@ public class AuthDatabaseImplementationRAM implements AuthDatabase {
             return ret;
         }
         return null;
+    }
+
+    @Override
+    public User.PublicData getUser(Validator validator) {
+        UserRecord record = getUserRecord(validator);
+        return getUserPublicData(record);
     }
 
     @Override
@@ -280,11 +244,6 @@ public class AuthDatabaseImplementationRAM implements AuthDatabase {
             return ErrorCode.SUCCEDED;
         }
         return ErrorCode.INVALID_USER;
-    }
-
-    @Override
-    public ErrorCode grantApplicationForUser(Validator validator, String appCode) {
-        return null;
     }
 
     private UserRecord getUserRecord(Validator validator) {

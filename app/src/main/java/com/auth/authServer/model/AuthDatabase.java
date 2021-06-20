@@ -9,9 +9,11 @@ import java.util.UUID;
 public interface AuthDatabase extends AutoCloseable {
     boolean USE_DEBUG_INFO = true;
 
-    // Admin functions
-    ErrorCode executeAdminCommand(String command);
+    // Local functions
     ErrorCode panic();
+
+    // Admin functions
+    AdminCommand.Response executeAdminCommand(String command);
     UserFields getUserPropertyFields();
 
     Inquiry.Response registerInquiry(Inquiry inquiry, Inquiry.Action action, Inquiry.ActionParams params);
@@ -21,7 +23,5 @@ public interface AuthDatabase extends AutoCloseable {
     ErrorCode updateUserValidator(Validator validator, Validator newValidator);
     ErrorCode setUserPublicKey(String publicKey, Validator validator);
     User.PublicData getUser(Validator validator);
-
-    ErrorCode grantApplicationForUser(Validator validator, String appCode);
     Token generateTokenForUser(Validator validator);
 }

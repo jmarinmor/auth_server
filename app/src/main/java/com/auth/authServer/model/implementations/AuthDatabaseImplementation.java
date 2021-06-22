@@ -7,6 +7,7 @@ import com.auth.interop.Inquiry;
 import com.auth.interop.User;
 import com.auth.interop.contents.AdminCommand;
 import com.auth.interop.contents.AlterUserField;
+import com.auth.interop.requests.CommandRequest;
 import com.google.gson.Gson;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -179,7 +180,7 @@ public abstract class AuthDatabaseImplementation implements AuthDatabase {
     }
 
     @Override
-    public AdminCommand.Response executeAdminCommand(String command) {
+    public AdminCommand.Response executeAdminCommand(CommandRequest command) {
         if (mKeyDatabase == null)
             return new AdminCommand.Response(ErrorCode.INVALID_STATE);
         ErrorCode e = mKeyDatabase.executeAdminCommand(command);

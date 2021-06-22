@@ -2,9 +2,7 @@ package com.auth.authServer.model;
 
 import com.auth.interop.*;
 import com.auth.interop.contents.*;
-
-import java.security.KeyPair;
-import java.util.UUID;
+import com.auth.interop.requests.CommandRequest;
 
 public interface AuthDatabase extends AutoCloseable {
     boolean USE_DEBUG_INFO = true;
@@ -13,7 +11,7 @@ public interface AuthDatabase extends AutoCloseable {
     ErrorCode panic();
 
     // Admin functions
-    AdminCommand.Response executeAdminCommand(String command);
+    AdminCommand.Response executeAdminCommand(CommandRequest<AdminCommand> command);
     UserFields getUserPropertyFields();
 
     Inquiry.Response registerInquiry(Inquiry inquiry, Inquiry.Action action, Inquiry.ActionParams params);
@@ -24,4 +22,9 @@ public interface AuthDatabase extends AutoCloseable {
     ErrorCode setUserPublicKey(String publicKey, Validator validator);
     User.PublicData getUser(Validator validator);
     Token generateTokenForUser(Validator validator);
+
+    default AdminCommand.Response executeAdminCommand(String command) {
+        CommandRequest cmd = new CommandRequest(command);
+        return executeAdminCommand(cmd);
+    }
 }

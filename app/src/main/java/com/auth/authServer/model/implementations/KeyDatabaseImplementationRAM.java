@@ -4,12 +4,14 @@ import com.auth.authServer.model.KeyDatabase;
 import com.auth.interop.ErrorCode;
 import com.auth.interop.NamedPublicKey;
 import com.auth.interop.contents.*;
+import com.auth.interop.requests.CommandRequest;
 import com.google.gson.Gson;
 import com.jcore.crypto.Crypter;
 import com.jcore.utils.CipherUtils;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 
+import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.util.*;
 
@@ -28,8 +30,11 @@ public class KeyDatabaseImplementationRAM implements KeyDatabase {
     private Gson mGson = new Gson();
 
     @Override
-    public ErrorCode executeAdminCommand(String commandToDecrypt) {
-        AdminCommand command = privateToCommand(commandToDecrypt);
+    public ErrorCode executeAdminCommand(CommandRequest<AdminCommand> commandToDecrypt) {
+        if (commandToDecrypt == null)
+            return ErrorCode.INVALID_PARAMS;
+
+        AdminCommand command = commandToDecrypt.getCommand(AdminCommand.class, mAdminPublicKey, mGson);
         if (command == null)
             return ErrorCode.INVALID_PARAMS;
         switch (command.type) {
@@ -49,28 +54,9 @@ public class KeyDatabaseImplementationRAM implements KeyDatabase {
         return ErrorCode.NON_ATTENDED;
     }
 
-    private AdminCommand privateToCommand(String commandToDecrypt) {
-        AdminCommand command = null;
-        if (mAdminPublicKey == null) {
-            try {
-                command = ContentEncrypter.decryptContent(AdminCommand.class, commandToDecrypt, mGson);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        } else {
-            try {
-                Crypter.Decrypter decrypter = Crypter.Decrypter.newFromRSAPublicKey(mAdminPublicKey);
-                command = ContentEncrypter.decryptContent(AdminCommand.class, commandToDecrypt, decrypter, mGson);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-        return command;
-    }
-
     @Override
-    public AdminCommand decryptAdminCommand(String commandToDecrypt) {
-        AdminCommand command = privateToCommand(commandToDecrypt);
+    public AdminCommand decryptAdminCommand(CommandRequest<AdminCommand> commandToDecrypt) {
+        AdminCommand command = commandToDecrypt.getCommand(AdminCommand.class, mAdminPublicKey, mGson);
         return command;
     }
 

@@ -3,13 +3,14 @@ package com.auth.authServer.model;
 import com.auth.interop.ErrorCode;
 import com.auth.interop.NamedPublicKey;
 import com.auth.interop.contents.*;
+import com.auth.interop.requests.CommandRequest;
 
 import java.security.KeyPair;
 
 public interface KeyDatabase extends AutoCloseable {
 
-    ErrorCode executeAdminCommand(String commandToDecrypt);
-    AdminCommand decryptAdminCommand(String commandToDecrypt);
+    ErrorCode executeAdminCommand(CommandRequest<AdminCommand> command);
+    AdminCommand decryptAdminCommand(CommandRequest<AdminCommand> command);
 
     void panic();
 

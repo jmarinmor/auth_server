@@ -15,50 +15,28 @@ public class User {
         APPLICATION
     }
 
-    public static class PublicCommonData {
-        public UUID id;
-        public Type type;
-        public String publicKey;
-        public String appCode;
-        public Set<String> appFields;
+    public UUID id;
+    public Type type;
+    public Map<String, Property> values;
+
+    public Property getNameField() {
+        return getUserField(NAME_FIELD);
     }
 
-    public static class PublicData extends PublicCommonData {
-        public Map<String, String> values;
-
-        public String getNameField() {
-            return getUserField(NAME_FIELD);
-        }
-
-        public String getUserField(String field) {
-            if (field == null || values == null)
-                return VOID_STRING;
-            String ret = values.get(field);
-            if (ret == null)
-                return VOID_STRING;
-            return ret;
-        }
-
-        public PublicData setName(String name) {
-            if (values == null)
-                values = new HashMap<>();
-            values.put(NAME_FIELD, name);
-            return this;
-        }
-
+    public Property getUserField(String field) {
+        if (field == null || values == null)
+            return null;
+        Property ret = values.get(field);
+        if (ret == null)
+            return null;
+        return ret;
     }
 
-    public static class ProtectedData extends PublicCommonData {
-        public Map<String, String> values;
-        public Map<String, UUID> resources;
-        public String resourcesSymmetricKey;
-
-        public ProtectedData setName(String name) {
-            if (values == null)
-                values = new HashMap<>();
-            values.put(NAME_FIELD, name);
-            return this;
-        }
+    public User setName(String name) {
+        if (values == null)
+            values = new HashMap<>();
+        values.put(NAME_FIELD, new Property(name));
+        return this;
     }
 
 }

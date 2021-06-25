@@ -1,6 +1,6 @@
 package com.auth.interop.utils;
 
-import com.jcore.utils.CipherUtils;
+import com.jcore.crypto.CipherUtils;
 
 import javax.crypto.Cipher;
 import java.security.KeyPair;

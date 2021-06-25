@@ -8,8 +8,8 @@ import com.auth.authServer.model.implementations.KeyDatabaseImplementationRAM;
 import com.auth.interop.*;
 import com.auth.interop.contents.*;
 import com.google.gson.Gson;
+import com.jcore.crypto.CipherUtils;
 import com.jcore.crypto.Crypter;
-import com.jcore.utils.CipherUtils;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
@@ -205,7 +205,7 @@ public class AuthServerApplication {
 				Inquiry inquiry = new Inquiry("1", "11");
 				Inquiry.ActionParams action = new Inquiry.ActionParams();
 
-				action.user = new User.PublicData();
+				action.user = new User();
 				action.user.setName("app");
 				action.user.type = User.Type.APPLICATION;
 				action.validator = new Validator();
@@ -227,17 +227,18 @@ public class AuthServerApplication {
 					Validator validator = new Validator();
 					validator.phone = "phone";
 					validator.password = "phone_pass";
-					User.PublicData user = adb.getUser(validator);
+					User user = adb.getUser(validator);
 
 					user.setName("MainApplication");
 					user.type = User.Type.APPLICATION;
-					user.appFields = new HashSet<>();
-					user.appFields.add(User.NAME_FIELD);
-					user.publicKey = CipherUtils.getPublicKeyInBase64(pair);
+					//user.appFields = new HashSet<>();
+					//user.appFields.add(User.NAME_FIELD);
+					//user.publicKey = CipherUtils.getPublicKeyInBase64(pair);
 					appPrivateKey = CipherUtils.getPrivateKeyInBase64(pair);
 					adb.updateUser(user, validator);
 					user = adb.getUser(validator);
-					applicationCode = user.appCode;
+					com.auth.interop.Application app = adb.getApplication(validator);
+					applicationCode = app.appCode;
 				}
 			}
 		}
@@ -257,7 +258,7 @@ public class AuthServerApplication {
 				Inquiry inquiry = new Inquiry("1", "11");
 				Inquiry.ActionParams action = new Inquiry.ActionParams();
 
-				action.user = new User.PublicData();
+				action.user = new User();
 				action.user.setName("user");
 				action.user.type = User.Type.USER;
 				action.validator = new Validator();
@@ -273,7 +274,7 @@ public class AuthServerApplication {
 				adb.verifyInquiry(inquiry, null);
 			}
 			// 11 - update_user
-			User.PublicData user;
+			User user;
 			{
 				Validator validator = new Validator();
 				validator.phone = "phone";

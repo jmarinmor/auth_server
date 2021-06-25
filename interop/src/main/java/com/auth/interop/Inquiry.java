@@ -16,7 +16,7 @@ public class Inquiry {
     }
 
     public static class ActionParams {
-        public User.PublicData user;
+        public User user;
         public UUID userId;
         public String applicationCode;
         public Validator validator;
@@ -24,7 +24,7 @@ public class Inquiry {
         public ActionParams() {
         }
 
-        public ActionParams(User.PublicData user) {
+        public ActionParams(User user) {
             this.user = user;
         }
 
@@ -32,7 +32,7 @@ public class Inquiry {
             this.validator = validator;
         }
 
-        public ActionParams(User.PublicData user, Validator validator) {
+        public ActionParams(User user, Validator validator) {
             this.user = user;
             this.validator = validator;
         }

@@ -9,5 +9,5 @@ public class UpdateUserRequest extends Validator {
         public ErrorCode errorCode;
     }
 
-    public User.PublicData user;
+    public User user;
 }

@@ -4,6 +4,7 @@ import com.auth.authServer.model.AuthDatabase;
 import com.auth.authServer.model.KeyDatabase;
 import com.auth.interop.ErrorCode;
 import com.auth.interop.Inquiry;
+import com.auth.interop.Property;
 import com.auth.interop.User;
 import com.auth.interop.contents.AdminCommand;
 import com.auth.interop.contents.AlterUserField;
@@ -18,8 +19,10 @@ import java.util.UUID;
 
 public abstract class AuthDatabaseImplementation implements AuthDatabase {
     protected static class UserRecord {
-        public String protectedData;
-        public Map<String, String> resources;
+        public String userData;
+        public String applicationData;
+        public Map<String, String> privateData;
+        public String userPublicKey;
         public String keyName;
         public String phoneHash;
         public String mailHash;
@@ -36,27 +39,27 @@ public abstract class AuthDatabaseImplementation implements AuthDatabase {
     protected static Gson mGson = new Gson();
     protected KeyDatabase mKeyDatabase;
 
-    protected static boolean performUpdateUserRecord(KeyDatabase database, User.ProtectedData user, UserRecord record) {
+    protected static boolean performUpdateUserRecord(KeyDatabase database, User user, UserRecord record) {
         String userData = database.encrypt(user, record.keyName);
-        record.protectedData = userData;
+        record.userData = userData;
         return true;
     }
 
-    protected static User.ProtectedData getUserProtectedData(KeyDatabase database, UserRecord record) {
+    protected static User getUserProtectedData(KeyDatabase database, UserRecord record) {
         if (record != null) {
-            User.ProtectedData user = database.decrypt(record.protectedData, User.ProtectedData.class, record.keyName);
+            User user = database.decrypt(record.userData, User.class, record.keyName);
             return user;
         }
         return null;
     }
 
     protected boolean performCheckUserRecordField(AlterUserField cmd, UserRecord record) {
-        User.ProtectedData user = getUserProtectedData(mKeyDatabase, record);
+        User user = getUserProtectedData(mKeyDatabase, record);
         if (user != null) {
-            String value = user.values.get(cmd.name);
+            Property value = user.values.get(cmd.name);
             if (!cmd.properties.checkValue(value)) {
                 if (user.values != null)
-                    user.values.put(cmd.name, "");
+                    user.values.put(cmd.name, new Property(""));
                 return performUpdateUserRecord(mKeyDatabase, user, record);
             }
         }
@@ -64,23 +67,59 @@ public abstract class AuthDatabaseImplementation implements AuthDatabase {
     }
 
     protected void performDeleteUserRecordField(AlterUserField cmd, UserRecord record) {
-        User.ProtectedData user = getUserProtectedData(mKeyDatabase, record);
+        User user = getUserProtectedData(mKeyDatabase, record);
         if (user != null) {
             if (user.values != null)
                 user.values.remove(cmd.name);
-            if (user.appFields != null)
-                user.appFields.remove(cmd.name);
+            //if (user.appFields != null)
+            //    user.appFields.remove(cmd.name);
             performUpdateUserRecord(mKeyDatabase, user, record);
         }
     }
 
     protected void performUpdateUserRecordField(AlterUserField cmd, UserRecord record) {
-        User.ProtectedData user = getUserProtectedData(mKeyDatabase, record);
+        User user = getUserProtectedData(mKeyDatabase, record);
         if (user.values != null)
-            user.values.put(cmd.name, "");
+            user.values.put(cmd.name, new Property(""));
         performUpdateUserRecord(mKeyDatabase, user, record);
     }
 
+    protected static ErrorCode convert(User from, User to) {
+        Map<String, Property> values = new HashMap<>();
+        Map<String, UUID> resources = new HashMap<>();
+
+        if (from.values != null) {
+            for (Map.Entry<String, Property> entry : from.values.entrySet()) {
+                //if (record.resources != null && record.resources.containsKey(entry.getKey())) {
+                //    // It is a resource
+                //    // TODO: 15/06/2021 Encrypt with a symmetric key
+                //} else {
+                values.put(entry.getKey(), entry.getValue());
+                //}
+            }
+        }
+
+        to.values = values;
+
+        if (to.type != from.type) {
+            if (to.type != User.Type.ADMIN)
+                to.type = from.type;
+            if (to.type == User.Type.APPLICATION) {
+                String sha256hex;
+                if (to.id != null)
+                    sha256hex = DigestUtils.sha256Hex(to.id.toString());
+                else if (from.id != null)
+                    sha256hex = DigestUtils.sha256Hex(from.id.toString());
+                else
+                    return ErrorCode.OPERATION_NOT_ALLOWED;
+                //to.appCode = sha256hex;
+            }
+        }
+
+        return ErrorCode.SUCCEDED;
+    }
+
+    /*
     protected static ErrorCode convert(User.PublicData from, User.ProtectedData to) {
         Map<String, String> values = new HashMap<>();
         Map<String, UUID> resources = new HashMap<>();
@@ -120,9 +159,9 @@ public abstract class AuthDatabaseImplementation implements AuthDatabase {
 
         return ErrorCode.SUCCEDED;
     }
-
-    protected ErrorCode performUpdateUserRecord(User.PublicData user, UserRecord record) {
-        User.ProtectedData stored_user = mKeyDatabase.decrypt(record.protectedData, User.ProtectedData.class, record.keyName);
+*/
+    protected ErrorCode performUpdateUserRecord(User user, UserRecord record) {
+        User stored_user = mKeyDatabase.decrypt(record.userData, User.class, record.keyName);
         if (!stored_user.id.equals(user.id))
             return ErrorCode.INVALID_USER;
 
@@ -131,7 +170,7 @@ public abstract class AuthDatabaseImplementation implements AuthDatabase {
             return r;
 
         String userData = mKeyDatabase.encrypt(stored_user, record.keyName);
-        record.protectedData = userData;
+        record.userData = userData;
 
         return ErrorCode.SUCCEDED;
     }

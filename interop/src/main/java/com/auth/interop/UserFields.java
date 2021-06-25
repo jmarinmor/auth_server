@@ -11,7 +11,7 @@ public class UserFields {
     public static class FieldProperties {
         public FieldType type;
 
-        public boolean checkValue(String value) {
+        public boolean checkValue(Property value) {
             return true;
         }
 

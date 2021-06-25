@@ -1,13 +1,12 @@
 package com.auth.authServer.controllers;
 
 import com.auth.authServer.model.Application;
-import com.auth.authServer.model.AuthDatabase;
 import com.auth.authServer.model.KeyDatabase;
 import com.auth.interop.ErrorCode;
 import com.auth.interop.requests.AddUserFieldRequest;
 import com.auth.interop.requests.GenerateAdminKeysRequest;
 import com.auth.interop.requests.SetAdminPublicKeyRequest;
-import com.jcore.utils.CipherUtils;
+import com.jcore.crypto.CipherUtils;
 import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;

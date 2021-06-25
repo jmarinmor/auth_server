@@ -1,6 +1,7 @@
 package com.auth.authServer.model;
 
 import com.auth.interop.*;
+import com.auth.interop.Application;
 import com.auth.interop.contents.*;
 import com.auth.interop.requests.CommandRequest;
 
@@ -17,10 +18,11 @@ public interface AuthDatabase extends AutoCloseable {
     Inquiry.Response registerInquiry(Inquiry inquiry, Inquiry.Action action, Inquiry.ActionParams params);
     Inquiry.Response verifyInquiry(Inquiry inquiry, Inquiry.ActionParams params);
 
-    ErrorCode updateUser(User.PublicData user, Validator validator);
+    ErrorCode updateUser(User user, Validator validator);
     ErrorCode updateUserValidator(Validator validator, Validator newValidator);
     ErrorCode setUserPublicKey(String publicKey, Validator validator);
-    User.PublicData getUser(Validator validator);
+    User getUser(Validator validator);
+    Application getApplication(Validator validator);
     Token generateTokenForUser(Validator validator);
 
     default AdminCommand.Response executeAdminCommand(String command) {

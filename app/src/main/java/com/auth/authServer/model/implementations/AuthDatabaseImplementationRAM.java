@@ -3,7 +3,6 @@ package com.auth.authServer.model.implementations;
 import com.auth.authServer.model.KeyDatabase;
 import com.auth.interop.*;
 import com.auth.interop.contents.*;
-import com.google.gson.Gson;
 import com.jcore.utils.TimeUtils;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -152,7 +151,7 @@ public class AuthDatabaseImplementationRAM extends AuthDatabaseImplementation {
             return;
         }
 
-        User.ProtectedData usr = new User.ProtectedData();
+        User usr = new User();
         usr.id = UUID.randomUUID();
         convert(params.user, usr);
         if (usr.type == User.Type.ADMIN || usr.type == null)
@@ -164,7 +163,7 @@ public class AuthDatabaseImplementationRAM extends AuthDatabaseImplementation {
 
         String sha256hex = DigestUtils.sha256Hex(params.validator.password);
         UserRecord record = new UserRecord();
-        record.protectedData = userData;
+        record.userData = userData;
         record.passwordHash = sha256hex;
         record.keyName = key_name;
         synchronized (mUserList) {
@@ -194,7 +193,7 @@ public class AuthDatabaseImplementationRAM extends AuthDatabaseImplementation {
     }
 
     @Override
-    public ErrorCode updateUser(User.PublicData user, Validator validator) {
+    public ErrorCode updateUser(User user, Validator validator) {
         if (user == null)
             return ErrorCode.INVALID_USER;
         if (validator == null)
@@ -206,13 +205,13 @@ public class AuthDatabaseImplementationRAM extends AuthDatabaseImplementation {
         return ErrorCode.INVALID_USER;
     }
 
-    private User.PublicData getUserPublicData(UserRecord record) {
+    private User getUserPublicData(UserRecord record) {
         if (record != null) {
-            User.ProtectedData user = mKeyDatabase.decrypt(record.protectedData, User.ProtectedData.class, record.keyName);
-            User.PublicData ret;
+            User user = mKeyDatabase.decrypt(record.userData, User.class, record.keyName);
+            User ret;
             {
                 String json = mGson.toJson(user);
-                ret = mGson.fromJson(json, User.PublicData.class);
+                ret = mGson.fromJson(json, User.class);
             }
             return ret;
         }
@@ -220,9 +219,14 @@ public class AuthDatabaseImplementationRAM extends AuthDatabaseImplementation {
     }
 
     @Override
-    public User.PublicData getUser(Validator validator) {
+    public User getUser(Validator validator) {
         UserRecord record = getUserRecord(validator);
         return getUserPublicData(record);
+    }
+
+    @Override
+    public Application getApplication(Validator validator) {
+        return null;
     }
 
     @Override
@@ -266,7 +270,7 @@ public class AuthDatabaseImplementationRAM extends AuthDatabaseImplementation {
                     String userData;
                     String key_name = mKeyDatabase.getRandomPublicKeyName();
                     {
-                        User.ProtectedData user = new User.ProtectedData();
+                        User user = new User();
                         user.id = UUID.randomUUID();
                         user.setName("admin");
                         user.type = User.Type.ADMIN;
@@ -275,7 +279,7 @@ public class AuthDatabaseImplementationRAM extends AuthDatabaseImplementation {
                     String sha256hex = DigestUtils.sha256Hex(validator.password);
 
                     UserRecord record = new UserRecord();
-                    record.protectedData = userData;
+                    record.userData = userData;
                     record.passwordHash = sha256hex;
                     record.keyName = key_name;
                     mUserList.add(record);
@@ -286,7 +290,7 @@ public class AuthDatabaseImplementationRAM extends AuthDatabaseImplementation {
                 UserRecord user_record = getUserRecord(validator);
                 if (user_record != null) {
                     Token.UserData data = new Token.UserData();
-                    User.ProtectedData user = mKeyDatabase.decrypt(user_record.protectedData, User.ProtectedData.class, user_record.keyName);
+                    User user = mKeyDatabase.decrypt(user_record.userData, User.class, user_record.keyName);
                     data.values = user.values;
                     data.date = TimeUtils.now();
                     data.applicationCode = null;
@@ -314,11 +318,14 @@ public class AuthDatabaseImplementationRAM extends AuthDatabaseImplementation {
 
     @Override
     public ErrorCode setUserPublicKey(String publicKey, Validator validator) {
-        User.PublicData user = getUser(validator);
+        /*
+        User user = getUser(validator);
         if (user != null) {
             user.publicKey = publicKey;
             return updateUser(user, validator);
         } else
+
+         */
             return ErrorCode.INVALID_USER;
     }
 

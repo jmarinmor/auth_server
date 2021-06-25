@@ -9,7 +9,7 @@ public class Token {
     public static class UserData {
         public String applicationCode;
         public String applicationName;
-        public Map<String, String> values;
+        public Map<String, Property> values;
         public Date date;
     }
 

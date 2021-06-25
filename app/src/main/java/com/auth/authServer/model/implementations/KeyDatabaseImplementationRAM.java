@@ -6,12 +6,10 @@ import com.auth.interop.NamedPublicKey;
 import com.auth.interop.contents.*;
 import com.auth.interop.requests.CommandRequest;
 import com.google.gson.Gson;
+import com.jcore.crypto.CipherUtils;
 import com.jcore.crypto.Crypter;
-import com.jcore.utils.CipherUtils;
 import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.lang3.StringUtils;
 
-import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.util.*;
 

@@ -1,9 +1,9 @@
 package com.auth.interop.contents;
 
 import com.auth.interop.ErrorCode;
-import com.auth.interop.UserFields;
 
 import java.util.Date;
+import java.util.Set;
 
 public class AdminCommand {
     public enum Type {
@@ -39,11 +39,11 @@ public class AdminCommand {
         return ret;
     }
 
-    public static AdminCommand newAddUserField(String name, UserFields.FieldProperties properties) {
+    public static AdminCommand newAddUserField(Set<String> properties) {
         AdminCommand ret = new AdminCommand();
         ret.date = new Date();
         ret.type = Type.ALTER_USER_FIELD;
-        ret.alterUserField = new AlterUserField(name, properties);
+        ret.alterUserField = new AlterUserField(properties);
 
         return ret;
     }

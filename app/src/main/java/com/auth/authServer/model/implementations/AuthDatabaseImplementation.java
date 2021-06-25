@@ -2,10 +2,7 @@ package com.auth.authServer.model.implementations;
 
 import com.auth.authServer.model.AuthDatabase;
 import com.auth.authServer.model.KeyDatabase;
-import com.auth.interop.ErrorCode;
-import com.auth.interop.Inquiry;
-import com.auth.interop.Property;
-import com.auth.interop.User;
+import com.auth.interop.*;
 import com.auth.interop.contents.AdminCommand;
 import com.auth.interop.contents.AlterUserField;
 import com.auth.interop.requests.CommandRequest;
@@ -18,16 +15,22 @@ import java.util.Map;
 import java.util.UUID;
 
 public abstract class AuthDatabaseImplementation implements AuthDatabase {
+
+
     protected static class UserRecord {
         public String userData;
         public String applicationData;
-        public Map<String, String> privateData;
+        public String privateData;
+        public String concessionsData;
+
         public String userPublicKey;
         public String keyName;
+
         public String phoneHash;
         public String mailHash;
         public String passwordHash;
     }
+
 
     protected static class InquiryRecord {
         public String key;
@@ -45,61 +48,77 @@ public abstract class AuthDatabaseImplementation implements AuthDatabase {
         return true;
     }
 
-    protected static User getUserProtectedData(KeyDatabase database, UserRecord record) {
+    protected static User getUserData(KeyDatabase database, UserRecord record) {
         if (record != null) {
-            User user = database.decrypt(record.userData, User.class, record.keyName);
-            return user;
+            User data = database.decrypt(record.userData, User.class, record.keyName);
+            return data;
         }
         return null;
     }
 
-    protected boolean performCheckUserRecordField(AlterUserField cmd, UserRecord record) {
-        User user = getUserProtectedData(mKeyDatabase, record);
+    protected static Application getApplicationData(KeyDatabase database, UserRecord record) {
+        if (record != null) {
+            Application data = database.decrypt(record.applicationData, Application.class, record.keyName);
+            return data;
+        }
+        return null;
+    }
+
+    protected static Concessions getConcessionsData(KeyDatabase database, UserRecord record) {
+        if (record != null) {
+            Concessions data = database.decrypt(record.concessionsData, Concessions.class, record.keyName);
+            return data;
+        }
+        return null;
+    }
+
+    protected boolean performCheckUserRecordField(String fieldName, UserRecord record) {
+        User user = getUserData(mKeyDatabase, record);
         if (user != null) {
-            Property value = user.values.get(cmd.name);
-            if (!cmd.properties.checkValue(value)) {
-                if (user.values != null)
-                    user.values.put(cmd.name, new Property(""));
+            if (user.valueReferences == null)
+                user.valueReferences = new HashMap<>();
+            Long value = user.valueReferences.get(fieldName);
+            if (value == null) {
+                user.valueReferences.put(fieldName, null);
                 return performUpdateUserRecord(mKeyDatabase, user, record);
             }
         }
         return false;
     }
 
-    protected void performDeleteUserRecordField(AlterUserField cmd, UserRecord record) {
-        User user = getUserProtectedData(mKeyDatabase, record);
+    protected void performDeleteUserRecordField(String fieldName, UserRecord record) {
+        User user = getUserData(mKeyDatabase, record);
         if (user != null) {
-            if (user.values != null)
-                user.values.remove(cmd.name);
-            //if (user.appFields != null)
-            //    user.appFields.remove(cmd.name);
+            if (user.valueReferences != null)
+                user.valueReferences.remove(fieldName);
             performUpdateUserRecord(mKeyDatabase, user, record);
         }
     }
 
-    protected void performUpdateUserRecordField(AlterUserField cmd, UserRecord record) {
-        User user = getUserProtectedData(mKeyDatabase, record);
-        if (user.values != null)
-            user.values.put(cmd.name, new Property(""));
+    protected void performUpdateUserRecordField(String fieldName, UserRecord record) {
+        User user = getUserData(mKeyDatabase, record);
+        if (user.valueReferences == null)
+            user.valueReferences = new HashMap<>();
+        user.valueReferences.put(fieldName, null);
         performUpdateUserRecord(mKeyDatabase, user, record);
     }
 
-    protected static ErrorCode convert(User from, User to) {
-        Map<String, Property> values = new HashMap<>();
-        Map<String, UUID> resources = new HashMap<>();
+    protected ErrorCode convert(User from, User to, String keyName) {
+        Map<String, Long> values = to.valueReferences == null ? new HashMap<>() : new HashMap<>(to.valueReferences);
 
         if (from.values != null) {
             for (Map.Entry<String, Property> entry : from.values.entrySet()) {
-                //if (record.resources != null && record.resources.containsKey(entry.getKey())) {
-                //    // It is a resource
-                //    // TODO: 15/06/2021 Encrypt with a symmetric key
-                //} else {
-                values.put(entry.getKey(), entry.getValue());
-                //}
+                String field_name = entry.getKey().toLowerCase();
+                Long id = to.valueReferences.get(field_name);
+                if (id == null) {
+                    id = createValueEntry();
+                }
+                setValue(id, entry.getValue(), keyName);
+                values.put(entry.getKey(), id);
             }
         }
 
-        to.values = values;
+        to.valueReferences = values;
 
         if (to.type != from.type) {
             if (to.type != User.Type.ADMIN)
@@ -118,6 +137,8 @@ public abstract class AuthDatabaseImplementation implements AuthDatabase {
 
         return ErrorCode.SUCCEDED;
     }
+
+
 
     /*
     protected static ErrorCode convert(User.PublicData from, User.ProtectedData to) {
@@ -165,7 +186,7 @@ public abstract class AuthDatabaseImplementation implements AuthDatabase {
         if (!stored_user.id.equals(user.id))
             return ErrorCode.INVALID_USER;
 
-        ErrorCode r = convert(user, stored_user);
+        ErrorCode r = convert(user, stored_user, record.keyName);
         if (r != ErrorCode.SUCCEDED)
             return r;
 
@@ -175,6 +196,8 @@ public abstract class AuthDatabaseImplementation implements AuthDatabase {
         return ErrorCode.SUCCEDED;
     }
 
+    protected abstract void setValue(Long id, Property value, String keyName);
+    abstract protected Long createValueEntry();
     abstract protected double getUpdateUsersProgression();
     abstract protected boolean containsUserField(String name);
     abstract protected void performAlterFieldInAllUsers(AlterUserField cmd, boolean add, boolean delete, boolean update);
@@ -196,7 +219,7 @@ public abstract class AuthDatabaseImplementation implements AuthDatabase {
                 ret = ErrorCode.INVALID_PARAMS;
             }
         } else {
-            if (!cmd.properties.isValid()) {
+            if (cmd.properties == null || cmd.properties.size() == 0) {
                 ret = ErrorCode.INVALID_PARAMS;
             } else {
                 if (exists) {

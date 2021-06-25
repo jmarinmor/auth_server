@@ -13,7 +13,8 @@ public class AuthDatabaseImplementationRAM extends AuthDatabaseImplementation {
 
     private static List<InquiryRecord> mInquiryList = new ArrayList<>();
     private static List<UserRecord> mUserList = new ArrayList<>();
-    private static Map<String, UserFields.FieldProperties> mUserFields = new HashMap<>();
+    private static Map<Long, String> mValues = new HashMap<>();
+    private static Set<String> mUserFields = new HashSet<>();
     private static boolean mUpdatingUsers;
     private static double mUpdateUsersProgression;
 
@@ -25,8 +26,30 @@ public class AuthDatabaseImplementationRAM extends AuthDatabaseImplementation {
     @Override
     protected boolean containsUserField(String name) {
         synchronized (mUserFields) {
-            return mUserFields.containsKey(name);
+            name = name.toLowerCase();
+            return mUserFields.contains(name);
         }
+    }
+
+    @Override
+    protected void setValue(Long id, Property value, String keyName) {
+        synchronized (mValues) {
+            String data = null;
+            if (value != null)
+                data = mKeyDatabase.encrypt(value, keyName);
+
+            mValues.put(id, data);
+        }
+    }
+
+    @Override
+    protected Long createValueEntry() {
+        long id;
+        synchronized (mValues) {
+            id = mValues.size() + 1;
+            mValues.put(id, null);
+        }
+        return id;
     }
 
     @Override
@@ -40,23 +63,24 @@ public class AuthDatabaseImplementationRAM extends AuthDatabaseImplementation {
         mUpdatingUsers = true;
         new Thread(() -> {
             synchronized (mUserList) {
+                String field_name = cmd.name.toLowerCase();
                 if (add) {
-                    mUserFields.put(cmd.name, cmd.properties);
+                    mUserFields.add(field_name);
                     for (int i = 0; i < mUserList.size(); i++) {
                         UserRecord record = mUserList.get(i);
-                        performUpdateUserRecordField(cmd, record);
+                        performUpdateUserRecordField(field_name, record);
                         mUpdateUsersProgression = ((double) i) / ((double) mUserList.size());
                     }
                 } else if (update) {
                     for (int i = 0; i < mUserList.size(); i++) {
                         UserRecord record = mUserList.get(i);
-                        performCheckUserRecordField(cmd, record);
+                        performCheckUserRecordField(field_name, record);
                         mUpdateUsersProgression = ((double) i) / ((double) mUserList.size());
                     }
                 } else if (delete) {
                     for (int i = 0; i < mUserList.size(); i++) {
                         UserRecord record = mUserList.get(i);
-                        performDeleteUserRecordField(cmd, record);
+                        performDeleteUserRecordField(field_name, record);
                         mUpdateUsersProgression = ((double) i) / ((double) mUserList.size());
                     }
                 }
@@ -74,7 +98,7 @@ public class AuthDatabaseImplementationRAM extends AuthDatabaseImplementation {
     }
 
     @Override
-    public UserFields getUserPropertyFields() {
+    public Set<String> getUserPropertyFields() {
         return null;
     }
 
@@ -151,14 +175,15 @@ public class AuthDatabaseImplementationRAM extends AuthDatabaseImplementation {
             return;
         }
 
+        String key_name = mKeyDatabase.getRandomPublicKeyName();
+
         User usr = new User();
         usr.id = UUID.randomUUID();
-        convert(params.user, usr);
+        convert(params.user, usr, key_name);
         if (usr.type == User.Type.ADMIN || usr.type == null)
             usr.type = User.Type.USER;
 
         String userData;
-        String key_name = mKeyDatabase.getRandomPublicKeyName();
         userData = mKeyDatabase.encrypt(usr, key_name);
 
         String sha256hex = DigestUtils.sha256Hex(params.validator.password);

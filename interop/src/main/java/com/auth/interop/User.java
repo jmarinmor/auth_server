@@ -18,6 +18,7 @@ public class User {
     public UUID id;
     public Type type;
     public Map<String, Property> values;
+    public Map<String, Long> valueReferences;
 
     public Property getNameField() {
         return getUserField(NAME_FIELD);

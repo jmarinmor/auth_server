@@ -1,18 +1,17 @@
 package com.auth.interop.contents;
 
-import com.auth.interop.UserFields;
+import java.util.Set;
 
 public class AlterUserField {
     public String name;
-    public UserFields.FieldProperties properties;
+    public Set<String> properties;
     public boolean overrideExisting;
     public boolean removeField;
 
     public AlterUserField() {
     }
 
-    public AlterUserField(String name, UserFields.FieldProperties properties) {
-        this.name = name;
+    public AlterUserField(Set<String> properties) {
         this.properties = properties;
     }
 }

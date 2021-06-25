@@ -7,6 +7,7 @@ import com.auth.authServer.model.implementations.AuthDatabaseImplementationRAM;
 import com.auth.authServer.model.implementations.KeyDatabaseImplementationRAM;
 import com.auth.interop.*;
 import com.auth.interop.contents.*;
+import com.google.common.collect.Sets;
 import com.google.gson.Gson;
 import com.jcore.crypto.CipherUtils;
 import com.jcore.crypto.Crypter;
@@ -114,7 +115,7 @@ public class AuthServerApplication {
 			Crypter.Decrypter decrypter = Crypter.Decrypter.newFromRSAKey(pair.getPublic());
 
 			EncryptedContent<AlterUserField> f = new EncryptedContent<AlterUserField>();
-			f.setContent(new AlterUserField("Hola", new UserFields.FieldProperties(UserFields.FieldType.STRING_TYPE)), encrypter, gson);
+			f.setContent(new AlterUserField(Sets.newHashSet("hola")), encrypter, gson);
 			AlterUserField c = f.getContent(decrypter, gson);
 			c = null;
 		}
@@ -176,12 +177,12 @@ public class AuthServerApplication {
 		{
 			// 3 - add_user_key
 			{
-				AdminCommand command = AdminCommand.newAddUserField("name", new UserFields.FieldProperties(UserFields.FieldType.STRING_TYPE));
+				AdminCommand command = AdminCommand.newAddUserField(Sets.newHashSet("name"));
 				String cmd = ContentEncrypter.encryptContent(command, Application.getGson());
 				adb.executeAdminCommand(cmd);
 			}
 			{
-				AdminCommand command = AdminCommand.newAddUserField("name", new UserFields.FieldProperties(UserFields.FieldType.STRING_TYPE));
+				AdminCommand command = AdminCommand.newAddUserField(Sets.newHashSet("name"));
 				String cmd = ContentEncrypter.encryptContent(command, adminCipher, Application.getGson());
 				adb.executeAdminCommand(cmd);
 			}

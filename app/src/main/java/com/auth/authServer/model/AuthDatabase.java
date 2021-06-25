@@ -5,6 +5,8 @@ import com.auth.interop.Application;
 import com.auth.interop.contents.*;
 import com.auth.interop.requests.CommandRequest;
 
+import java.util.Set;
+
 public interface AuthDatabase extends AutoCloseable {
     boolean USE_DEBUG_INFO = true;
 
@@ -13,7 +15,7 @@ public interface AuthDatabase extends AutoCloseable {
 
     // Admin functions
     AdminCommand.Response executeAdminCommand(CommandRequest<AdminCommand> command);
-    UserFields getUserPropertyFields();
+    Set<String> getUserPropertyFields();
 
     Inquiry.Response registerInquiry(Inquiry inquiry, Inquiry.Action action, Inquiry.ActionParams params);
     Inquiry.Response verifyInquiry(Inquiry inquiry, Inquiry.ActionParams params);

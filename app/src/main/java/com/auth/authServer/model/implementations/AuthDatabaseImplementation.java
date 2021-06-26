@@ -72,13 +72,21 @@ public abstract class AuthDatabaseImplementation implements AuthDatabase {
         return null;
     }
 
+    protected static Property getPropertyData(KeyDatabase database, String encodedProperty, String keyName) {
+        if (encodedProperty != null && keyName != null && database != null) {
+            Property data = database.decrypt(encodedProperty, Property.class, keyName);
+            return data;
+        }
+        return null;
+    }
+
     protected boolean performCheckUserRecordField(String fieldName, UserRecord record) {
         User user = getUserData(mKeyDatabase, record);
         if (user != null) {
             if (user.valueReferences == null)
                 user.valueReferences = new HashMap<>();
-            Long value = user.valueReferences.get(fieldName);
-            if (value == null) {
+            User.PropertyEntry property = user.valueReferences.get(fieldName);
+            if (property == null) {
                 user.valueReferences.put(fieldName, null);
                 return performUpdateUserRecord(mKeyDatabase, user, record);
             }
@@ -104,8 +112,9 @@ public abstract class AuthDatabaseImplementation implements AuthDatabase {
     }
 
     protected ErrorCode convert(User from, User to, String keyName) {
-        Map<String, Long> values = to.valueReferences == null ? new HashMap<>() : new HashMap<>(to.valueReferences);
 
+        /*
+        Map<String, Long> values = to.valueReferences == null ? new HashMap<>() : new HashMap<>(to.valueReferences);
         if (from.values != null) {
             for (Map.Entry<String, Property> entry : from.values.entrySet()) {
                 String field_name = entry.getKey().toLowerCase();
@@ -117,8 +126,8 @@ public abstract class AuthDatabaseImplementation implements AuthDatabase {
                 values.put(entry.getKey(), id);
             }
         }
-
         to.valueReferences = values;
+         */
 
         if (to.type != from.type) {
             if (to.type != User.Type.ADMIN)

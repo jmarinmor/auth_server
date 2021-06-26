@@ -207,7 +207,7 @@ public class AuthServerApplication {
 				Inquiry.ActionParams action = new Inquiry.ActionParams();
 
 				action.user = new User();
-				action.user.setName("app");
+				action.setProperty(User.NAME_FIELD, "app");
 				action.user.type = User.Type.APPLICATION;
 				action.validator = new Validator();
 				action.validator.phone = "phone";
@@ -230,7 +230,7 @@ public class AuthServerApplication {
 					validator.password = "phone_pass";
 					User user = adb.getUser(validator);
 
-					user.setName("MainApplication");
+					//user.setName("MainApplication");
 					user.type = User.Type.APPLICATION;
 					//user.appFields = new HashSet<>();
 					//user.appFields.add(User.NAME_FIELD);
@@ -260,7 +260,7 @@ public class AuthServerApplication {
 				Inquiry.ActionParams action = new Inquiry.ActionParams();
 
 				action.user = new User();
-				action.user.setName("user");
+				action.setName("user");
 				action.user.type = User.Type.USER;
 				action.validator = new Validator();
 				action.validator.phone = "phone1";
@@ -281,7 +281,7 @@ public class AuthServerApplication {
 				validator.phone = "phone";
 				validator.password = "phone_pass";
 				user = adb.getUser(validator);
-				user.setName("User Name");
+				//user.setName("User Name");
 				adb.updateUser(user, validator);
 			}
 			{

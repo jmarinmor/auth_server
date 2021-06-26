@@ -5,6 +5,7 @@ import com.auth.interop.Application;
 import com.auth.interop.contents.*;
 import com.auth.interop.requests.CommandRequest;
 
+import java.util.Map;
 import java.util.Set;
 
 public interface AuthDatabase extends AutoCloseable {
@@ -24,6 +25,9 @@ public interface AuthDatabase extends AutoCloseable {
     ErrorCode updateUserValidator(Validator validator, Validator newValidator);
     ErrorCode setUserPublicKey(String publicKey, Validator validator);
     User getUser(Validator validator);
+    Set<String> getUserFields(Validator validator);
+    Map<String, Property> getUserProperties(Set<String> names, Validator validator);
+    ErrorCode setUserProperties(Map<String, Property> properties, Validator validator);
     Application getApplication(Validator validator);
     Token generateTokenForUser(Validator validator);
 

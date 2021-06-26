@@ -2,6 +2,8 @@ package com.auth.interop;
 
 import org.apache.commons.lang3.StringUtils;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 
@@ -20,6 +22,7 @@ public class Inquiry {
         public UUID userId;
         public String applicationCode;
         public Validator validator;
+        public Map<String, Property> properties;
 
         public ActionParams() {
         }
@@ -35,6 +38,17 @@ public class Inquiry {
         public ActionParams(User user, Validator validator) {
             this.user = user;
             this.validator = validator;
+        }
+
+        public ActionParams setProperty(String nameField, String value) {
+            if (properties == null)
+                properties = new HashMap<>();
+            properties.put(nameField, new Property(value));
+            return this;
+        }
+
+        public ActionParams setName(String name) {
+            return setProperty(User.NAME_FIELD, name);
         }
     }
 

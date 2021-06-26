@@ -183,6 +183,21 @@ public class AuthDatabaseImplementationRAM extends AuthDatabaseImplementation {
         if (usr.type == User.Type.ADMIN || usr.type == null)
             usr.type = User.Type.USER;
 
+        synchronized (mUserFields) {
+            for (String name : mUserFields) {
+                Property p = null;
+                if (params1 != null && params1.properties != null)
+                    p = params1.properties.get(name);
+                if (params2 != null && params2.properties != null)
+                    p = params2.properties.get(name);
+                // TODO: 26/6/21 Faltan los campos detached
+                if (p != null) {
+                    Long id = createValueEntry();
+                    setValue(id, p, key_name);
+                }
+            }
+        }
+
         String userData;
         userData = mKeyDatabase.encrypt(usr, key_name);
 
@@ -246,7 +261,74 @@ public class AuthDatabaseImplementationRAM extends AuthDatabaseImplementation {
     @Override
     public User getUser(Validator validator) {
         UserRecord record = getUserRecord(validator);
-        return getUserPublicData(record);
+        if (record != null) {
+            User ret = getUserPublicData(record);
+            ret.valueReferences = null;
+            return ret;
+        }
+        return null;
+    }
+
+    @Override
+    public Set<String> getUserFields(Validator validator) {
+        UserRecord record = getUserRecord(validator);
+        if (record != null) {
+            User user = getUserPublicData(record);
+            if (user != null) {
+                Set<String> ret = user.valueReferences.keySet();
+
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public Map<String, Property> getUserProperties(Set<String> names, Validator validator) {
+        Map<String, Property> ret = new HashMap<>();
+        UserRecord record = getUserRecord(validator);
+        if (record != null) {
+            User user = getUserData(mKeyDatabase, record);
+            if (user != null) {
+                for (String n : names) {
+                    User.PropertyEntry property_entry = user.valueReferences.get(n);
+                    if (property_entry != null && property_entry.id != null) {
+                        synchronized (mValues) {
+                            String encoded_property = mValues.get(property_entry.id);
+                            if (encoded_property != null) {
+                                Property p = getPropertyData(mKeyDatabase, encoded_property, record.keyName);
+                                if (p != null) {
+                                    ret.put(n, p);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return ret;
+    }
+
+    @Override
+    public ErrorCode setUserProperties(Map<String, Property> properties, Validator validator) {
+        UserRecord record = getUserRecord(validator);
+        if (record != null) {
+            User user = getUserData(mKeyDatabase, record);
+            if (user != null) {
+                for (Map.Entry<String, Property> entry : properties.entrySet()) {
+                    // TODO: 26/6/21 Añadir las propiedades detached
+                    if (!entry.getValue().detached) {
+                        User.PropertyEntry property_entry = user.valueReferences.get(entry.getKey());
+                        if (property_entry != null && property_entry.id != null) {
+                            synchronized (mValues) {
+                                String encoded_property = mKeyDatabase.encrypt(entry.getValue(), record.keyName);
+                                mValues.put(property_entry.id, encoded_property);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return ErrorCode.SUCCEDED;
     }
 
     @Override
@@ -276,6 +358,8 @@ public class AuthDatabaseImplementationRAM extends AuthDatabaseImplementation {
     }
 
     private UserRecord getUserRecord(Validator validator) {
+        if (validator == null)
+            return null;
         if (validator.password != null) {
             String password_hash = DigestUtils.sha256Hex(validator.password);
             for (UserRecord user : mUserList) {
@@ -297,7 +381,11 @@ public class AuthDatabaseImplementationRAM extends AuthDatabaseImplementation {
                     {
                         User user = new User();
                         user.id = UUID.randomUUID();
-                        user.setName("admin");
+                        {
+                            Long id = createValueEntry();
+                            setValue(id, new Property("admin"), key_name);
+                            user.valueReferences.put(User.NAME_FIELD, new User.PropertyEntry(id));
+                        }
                         user.type = User.Type.ADMIN;
                         userData = mKeyDatabase.encrypt(user, key_name);
                     }
@@ -316,7 +404,7 @@ public class AuthDatabaseImplementationRAM extends AuthDatabaseImplementation {
                 if (user_record != null) {
                     Token.UserData data = new Token.UserData();
                     User user = mKeyDatabase.decrypt(user_record.userData, User.class, user_record.keyName);
-                    data.values = user.values;
+                    //data.values = user.values;
                     data.date = TimeUtils.now();
                     data.applicationCode = null;
                     data.applicationName = null;

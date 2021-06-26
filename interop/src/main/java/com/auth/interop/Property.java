@@ -7,6 +7,7 @@ public class Property {
     }
 
     public Type type;
+    public boolean detached;
     public String content;
 
     public Property(String content) {

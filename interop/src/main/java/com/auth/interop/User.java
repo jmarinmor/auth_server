@@ -15,29 +15,24 @@ public class User {
         APPLICATION
     }
 
+    public static class PropertyEntry {
+        public Long id;
+        public boolean hidden;
+
+        public PropertyEntry() {
+        }
+
+        public PropertyEntry(Long id) {
+            this.id = id;
+        }
+
+        public PropertyEntry(Long id, boolean hidden) {
+            this.id = id;
+            this.hidden = hidden;
+        }
+    }
+
     public UUID id;
     public Type type;
-    public Map<String, Property> values;
-    public Map<String, Long> valueReferences;
-
-    public Property getNameField() {
-        return getUserField(NAME_FIELD);
-    }
-
-    public Property getUserField(String field) {
-        if (field == null || values == null)
-            return null;
-        Property ret = values.get(field);
-        if (ret == null)
-            return null;
-        return ret;
-    }
-
-    public User setName(String name) {
-        if (values == null)
-            values = new HashMap<>();
-        values.put(NAME_FIELD, new Property(name));
-        return this;
-    }
-
+    public Map<String, PropertyEntry> valueReferences;
 }

@@ -43,14 +43,14 @@ public abstract class AuthDatabaseImplementation implements AuthDatabase {
     protected KeyDatabase mKeyDatabase;
 
     protected static boolean performUpdateUserRecord(KeyDatabase database, User user, UserRecord record) {
-        String userData = database.encrypt(user, record.keyName);
+        String userData = database.encryptObjectToBase64(user, record.keyName, mGson);
         record.userData = userData;
         return true;
     }
 
     protected static User getUserData(KeyDatabase database, UserRecord record) {
         if (record != null) {
-            User data = database.decrypt(record.userData, User.class, record.keyName);
+            User data = database.decryptBase64ToObject(record.userData, User.class, record.keyName, mGson);
             return data;
         }
         return null;
@@ -58,7 +58,7 @@ public abstract class AuthDatabaseImplementation implements AuthDatabase {
 
     protected static Application getApplicationData(KeyDatabase database, UserRecord record) {
         if (record != null) {
-            Application data = database.decrypt(record.applicationData, Application.class, record.keyName);
+            Application data = database.decryptBase64ToObject(record.applicationData, Application.class, record.keyName, mGson);
             return data;
         }
         return null;
@@ -66,7 +66,7 @@ public abstract class AuthDatabaseImplementation implements AuthDatabase {
 
     protected static Concessions getConcessionsData(KeyDatabase database, UserRecord record) {
         if (record != null) {
-            Concessions data = database.decrypt(record.concessionsData, Concessions.class, record.keyName);
+            Concessions data = database.decryptBase64ToObject(record.concessionsData, Concessions.class, record.keyName, mGson);
             return data;
         }
         return null;
@@ -74,7 +74,7 @@ public abstract class AuthDatabaseImplementation implements AuthDatabase {
 
     protected static Property getPropertyData(KeyDatabase database, String encodedProperty, String keyName) {
         if (encodedProperty != null && keyName != null && database != null) {
-            Property data = database.decrypt(encodedProperty, Property.class, keyName);
+            Property data = database.decryptBase64ToObject(encodedProperty, Property.class, keyName, mGson);
             return data;
         }
         return null;
@@ -191,7 +191,7 @@ public abstract class AuthDatabaseImplementation implements AuthDatabase {
     }
 */
     protected ErrorCode performUpdateUserRecord(User user, UserRecord record) {
-        User stored_user = mKeyDatabase.decrypt(record.userData, User.class, record.keyName);
+        User stored_user = mKeyDatabase.decryptBase64ToObject(record.userData, User.class, record.keyName, mGson);
         if (!stored_user.id.equals(user.id))
             return ErrorCode.INVALID_USER;
 
@@ -199,7 +199,7 @@ public abstract class AuthDatabaseImplementation implements AuthDatabase {
         if (r != ErrorCode.SUCCEDED)
             return r;
 
-        String userData = mKeyDatabase.encrypt(stored_user, record.keyName);
+        String userData = mKeyDatabase.encryptObjectToBase64(stored_user, record.keyName, mGson);
         record.userData = userData;
 
         return ErrorCode.SUCCEDED;

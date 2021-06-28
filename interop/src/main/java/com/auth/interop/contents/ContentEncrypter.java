@@ -33,6 +33,14 @@ public class ContentEncrypter {
         return encryptedBytesInBase64String;
     }
 
+    public static String encryptString(String content, Crypter cipher, Gson serializer) throws Exception {
+        byte[] src = content.getBytes(StandardCharsets.UTF_8);
+        //byte[] encryptedBytes = cipher.doFinal(src);
+        byte[] encryptedBytes = cipher.crypt(src);
+        String encryptedBytesInBase64String = Base64.getEncoder().encodeToString(encryptedBytes);
+        return encryptedBytesInBase64String;
+    }
+
     public static <T> T decryptContent(Class<T> aClass, String encryptedContent, Crypter cipher, Gson serializer) throws Exception {
         byte[] encryptedBytes = Base64.getDecoder().decode(encryptedContent);
         byte[] decryptedBytes = cipher.crypt(encryptedBytes);

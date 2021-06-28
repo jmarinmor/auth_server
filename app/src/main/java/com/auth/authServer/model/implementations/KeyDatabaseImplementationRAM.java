@@ -82,7 +82,7 @@ public class KeyDatabaseImplementationRAM implements KeyDatabase {
     }
 
     @Override
-    public String getRandomPublicKeyName() {
+    public String getRandomPublicKeyName(Encoding encoding) {
         synchronized (mEncryptedPrivateKey) {
             if (mInPanic || mEncryptedPrivateKey.size() > 0)
                 return null;
@@ -153,12 +153,13 @@ public class KeyDatabaseImplementationRAM implements KeyDatabase {
     }
 
     @Override
-    public String encrypt(Object objectToEncrypt, String keyName) {
+    public byte[] encrypt(byte[] toEncrypt, String keyName) {
         byte[] bytes = getPublicKeyBytes(keyName);
         if (bytes != null) {
             try {
                 Crypter.Encrypter encrypter = Crypter.Encrypter.newFromRSAPublicKey(bytes);
-                return ContentEncrypter.encryptContent(objectToEncrypt, encrypter, mGson);
+                byte[] ret = encrypter.crypt(toEncrypt);
+                return ret;
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -180,12 +181,13 @@ public class KeyDatabaseImplementationRAM implements KeyDatabase {
     }
 
     @Override
-    public <T> T decrypt(String objectToDecrypt, Class<T> aClass, String keyName) {
+    public byte[] decrypt(byte[] toDecrypt, String keyName) {
         byte[] bytes = getPrivateKeyBytes(keyName);
         if (bytes != null) {
             try {
                 Crypter.Decrypter decrypter = Crypter.Decrypter.newFromRSAPrivateKey(bytes);
-                return ContentEncrypter.decryptContent(aClass, objectToDecrypt, decrypter, mGson);
+                byte[] ret = decrypter.crypt(toDecrypt);
+                return ret;
             } catch (Exception e) {
                 e.printStackTrace();
             }

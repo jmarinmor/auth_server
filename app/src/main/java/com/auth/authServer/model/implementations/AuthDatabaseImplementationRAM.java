@@ -36,7 +36,7 @@ public class AuthDatabaseImplementationRAM extends AuthDatabaseImplementation {
         synchronized (mValues) {
             String data = null;
             if (value != null)
-                data = mKeyDatabase.encrypt(value, keyName);
+                data = mKeyDatabase.encryptObjectToBase64(value, keyName, mGson);
 
             mValues.put(id, data);
         }
@@ -175,7 +175,7 @@ public class AuthDatabaseImplementationRAM extends AuthDatabaseImplementation {
             return;
         }
 
-        String key_name = mKeyDatabase.getRandomPublicKeyName();
+        String key_name = mKeyDatabase.getRandomPublicKeyName(KeyDatabase.Encoding.ASYMMETRIC);
 
         User usr = new User();
         usr.id = UUID.randomUUID();
@@ -199,7 +199,7 @@ public class AuthDatabaseImplementationRAM extends AuthDatabaseImplementation {
         }
 
         String userData;
-        userData = mKeyDatabase.encrypt(usr, key_name);
+        userData = mKeyDatabase.encryptObjectToBase64(usr, key_name, mGson);
 
         String sha256hex = DigestUtils.sha256Hex(params.validator.password);
         UserRecord record = new UserRecord();
@@ -247,7 +247,7 @@ public class AuthDatabaseImplementationRAM extends AuthDatabaseImplementation {
 
     private User getUserPublicData(UserRecord record) {
         if (record != null) {
-            User user = mKeyDatabase.decrypt(record.userData, User.class, record.keyName);
+            User user = mKeyDatabase.decryptBase64ToObject(record.userData, User.class, record.keyName, mGson);
             User ret;
             {
                 String json = mGson.toJson(user);
@@ -320,7 +320,7 @@ public class AuthDatabaseImplementationRAM extends AuthDatabaseImplementation {
                         User.PropertyEntry property_entry = user.valueReferences.get(entry.getKey());
                         if (property_entry != null && property_entry.id != null) {
                             synchronized (mValues) {
-                                String encoded_property = mKeyDatabase.encrypt(entry.getValue(), record.keyName);
+                                String encoded_property = mKeyDatabase.encryptObjectToBase64(entry.getValue(), record.keyName, mGson);
                                 mValues.put(property_entry.id, encoded_property);
                             }
                         }
@@ -377,7 +377,7 @@ public class AuthDatabaseImplementationRAM extends AuthDatabaseImplementation {
             if (mUserList.size() == 0) {
                 if (StringUtils.equals(validator.password, "12345")) {
                     String userData;
-                    String key_name = mKeyDatabase.getRandomPublicKeyName();
+                    String key_name = mKeyDatabase.getRandomPublicKeyName(KeyDatabase.Encoding.ASYMMETRIC);
                     {
                         User user = new User();
                         user.id = UUID.randomUUID();
@@ -387,7 +387,7 @@ public class AuthDatabaseImplementationRAM extends AuthDatabaseImplementation {
                             user.valueReferences.put(User.NAME_FIELD, new User.PropertyEntry(id));
                         }
                         user.type = User.Type.ADMIN;
-                        userData = mKeyDatabase.encrypt(user, key_name);
+                        userData = mKeyDatabase.encryptObjectToBase64(user, key_name, mGson);
                     }
                     String sha256hex = DigestUtils.sha256Hex(validator.password);
 
@@ -403,7 +403,7 @@ public class AuthDatabaseImplementationRAM extends AuthDatabaseImplementation {
                 UserRecord user_record = getUserRecord(validator);
                 if (user_record != null) {
                     Token.UserData data = new Token.UserData();
-                    User user = mKeyDatabase.decrypt(user_record.userData, User.class, user_record.keyName);
+                    User user = mKeyDatabase.decryptBase64ToObject(user_record.userData, User.class, user_record.keyName, mGson);
                     //data.values = user.values;
                     data.date = TimeUtils.now();
                     data.applicationCode = null;
@@ -412,7 +412,7 @@ public class AuthDatabaseImplementationRAM extends AuthDatabaseImplementation {
                     try {
                         Token ret = new Token();
                         ret.serverPublicKeyName = user_record.keyName;
-                        ret.userData = mKeyDatabase.encrypt(data, user_record.keyName);
+                        ret.userData = mKeyDatabase.encryptObjectToBase64(data, user_record.keyName, mGson);
                         return ret;
                     } catch (Exception e) {
                         e.printStackTrace();

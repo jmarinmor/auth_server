@@ -1,9 +1,13 @@
 package com.auth.authServer.model.implementations;
 
-import com.auth.authServer.model.KeyDatabase;
-import com.auth.interop.*;
-import com.auth.interop.contents.*;
+import com.servers.interop.*;
+import com.servers.interop.commands.GetRandomPublicKeyName;
+import com.servers.interop.commands.GetUsersProgression;
+import com.servers.interop.commands.SetPublicKey;
+import com.servers.interop.contents.AlterUserField;
+import com.servers.interop.requests.CommandRequest;
 import com.jcore.utils.TimeUtils;
+import com.servers.key.model.KeyDatabase;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 
@@ -98,6 +102,16 @@ public class AuthDatabaseImplementationRAM extends AuthDatabaseImplementation {
     }
 
     @Override
+    public ErrorCode setAdminPublicKey(CommandRequest<SetPublicKey> command) {
+        return null;
+    }
+
+    @Override
+    public Double getUsersProgression(CommandRequest<GetUsersProgression> command) {
+        return null;
+    }
+
+    @Override
     public Set<String> getUserPropertyFields() {
         return null;
     }
@@ -175,7 +189,7 @@ public class AuthDatabaseImplementationRAM extends AuthDatabaseImplementation {
             return;
         }
 
-        String key_name = mKeyDatabase.getRandomPublicKeyName(KeyDatabase.Encoding.ASYMMETRIC);
+        String key_name = mKeyDatabase.getRandomPublicKeyName(GetRandomPublicKeyName.Encoding.ASYMMETRIC);
 
         User usr = new User();
         usr.id = UUID.randomUUID();
@@ -377,7 +391,7 @@ public class AuthDatabaseImplementationRAM extends AuthDatabaseImplementation {
             if (mUserList.size() == 0) {
                 if (StringUtils.equals(validator.password, "12345")) {
                     String userData;
-                    String key_name = mKeyDatabase.getRandomPublicKeyName(KeyDatabase.Encoding.ASYMMETRIC);
+                    String key_name = mKeyDatabase.getRandomPublicKeyName(GetRandomPublicKeyName.Encoding.ASYMMETRIC);
                     {
                         User user = new User();
                         user.id = UUID.randomUUID();

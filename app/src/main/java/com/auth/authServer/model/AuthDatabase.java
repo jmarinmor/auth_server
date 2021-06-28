@@ -1,9 +1,10 @@
 package com.auth.authServer.model;
 
-import com.auth.interop.*;
-import com.auth.interop.Application;
-import com.auth.interop.contents.*;
-import com.auth.interop.requests.CommandRequest;
+import com.servers.interop.*;
+import com.servers.interop.Application;
+import com.servers.interop.commands.GetUsersProgression;
+import com.servers.interop.commands.SetPublicKey;
+import com.servers.interop.requests.CommandRequest;
 
 import java.util.Map;
 import java.util.Set;
@@ -15,7 +16,8 @@ public interface AuthDatabase extends AutoCloseable {
     ErrorCode panic();
 
     // Admin functions
-    AdminCommand.Response executeAdminCommand(CommandRequest<AdminCommand> command);
+    ErrorCode setAdminPublicKey(CommandRequest<SetPublicKey> command);
+    Double getUsersProgression(CommandRequest<GetUsersProgression> command);
     Set<String> getUserPropertyFields();
 
     Inquiry.Response registerInquiry(Inquiry inquiry, Inquiry.Action action, Inquiry.ActionParams params);
@@ -31,8 +33,11 @@ public interface AuthDatabase extends AutoCloseable {
     Application getApplication(Validator validator);
     Token generateTokenForUser(Validator validator);
 
+    /*
     default AdminCommand.Response executeAdminCommand(String command) {
         CommandRequest cmd = new CommandRequest(command);
         return executeAdminCommand(cmd);
     }
+
+     */
 }

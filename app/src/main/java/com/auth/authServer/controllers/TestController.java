@@ -1,9 +1,5 @@
 package com.auth.authServer.controllers;
 
-import com.auth.authServer.model.Application;
-import com.auth.authServer.model.AuthDatabase;
-import com.auth.interop.requests.SetPanicPublicKeyRequest;
-import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.*;
 
 @RestController

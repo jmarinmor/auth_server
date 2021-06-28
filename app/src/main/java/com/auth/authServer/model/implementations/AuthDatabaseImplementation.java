@@ -1,18 +1,13 @@
 package com.auth.authServer.model.implementations;
 
 import com.auth.authServer.model.AuthDatabase;
-import com.auth.authServer.model.KeyDatabase;
-import com.auth.interop.*;
-import com.auth.interop.contents.AdminCommand;
-import com.auth.interop.contents.AlterUserField;
-import com.auth.interop.requests.CommandRequest;
+import com.servers.interop.*;
+import com.servers.interop.contents.AlterUserField;
 import com.google.gson.Gson;
+import com.servers.key.model.KeyDatabase;
 import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.lang3.StringUtils;
 
 import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
 
 public abstract class AuthDatabaseImplementation implements AuthDatabase {
 
@@ -249,11 +244,12 @@ public abstract class AuthDatabaseImplementation implements AuthDatabase {
             performAlterFieldInAllUsers(cmd, add, remove, update);
         return ret;
     }
-
+/*
     @Override
     public AdminCommand.Response executeAdminCommand(CommandRequest command) {
         if (mKeyDatabase == null)
             return new AdminCommand.Response(ErrorCode.INVALID_STATE);
+
         ErrorCode e = mKeyDatabase.executeAdminCommand(command);
         if (e != ErrorCode.SUCCEDED && e != ErrorCode.NON_ATTENDED)
             return new AdminCommand.Response(e);
@@ -276,4 +272,6 @@ public abstract class AuthDatabaseImplementation implements AuthDatabase {
         }
         return new AdminCommand.Response(ErrorCode.SUCCEDED);
     }
+
+ */
 }

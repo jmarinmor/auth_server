@@ -2,15 +2,12 @@ package com.auth.authServer.controllers;
 
 import com.auth.authServer.model.AuthDatabase;
 import com.auth.authServer.model.Application;
-import com.auth.authServer.model.KeyDatabase;
-import com.auth.interop.ErrorCode;
-import com.auth.interop.Validator;
-import com.auth.interop.*;
-import com.auth.interop.requests.*;
+import com.servers.interop.Captcha;
+import com.servers.interop.Validator;
+import com.servers.interop.requests.*;
+import com.servers.key.model.KeyDatabase;
 import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/users")
@@ -63,8 +60,8 @@ public class UserController {
     // This function finally activate an account
     // Needs: the response generated in register
     @PostMapping(value = "/verify")
-    public RequestResponse<VerifyUser.Response> verifyAccountCallback(@RequestBody @NonNull VerifyUser request) {
-        RequestResponse<VerifyUser.Response> ret = new RequestResponse<>();
+    public CommandResponse<VerifyUser.Response> verifyAccountCallback(@RequestBody @NonNull VerifyUser request) {
+        CommandResponse<VerifyUser.Response> ret = new CommandResponse<>();
 
         try (AuthDatabase db = Application.getAuthDatabase()) {
 //            Validator validator = new Validator();

@@ -2,11 +2,15 @@ package com.auth.authServer;
 
 import com.auth.authServer.model.Application;
 import com.auth.authServer.model.AuthDatabase;
-import com.auth.authServer.model.KeyDatabase;
 import com.auth.authServer.model.implementations.AuthDatabaseImplementationRAM;
-import com.auth.authServer.model.implementations.KeyDatabaseImplementationRAM;
-import com.auth.interop.*;
-import com.auth.interop.contents.*;
+import com.servers.interop.*;
+import com.servers.interop.contents.AdminCommand;
+import com.servers.interop.contents.AlterUserField;
+import com.servers.interop.contents.ContentEncrypter;
+import com.servers.interop.contents.EncryptedContent;
+import com.servers.key.model.KeyDatabase;
+import com.servers.key.model.implementations.KeyDatabaseImplementationRAM;
+import com.servers.interop.requests.CommandRequest;
 import com.google.common.collect.Sets;
 import com.google.gson.Gson;
 import com.jcore.crypto.CipherUtils;
@@ -22,7 +26,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.text.SimpleDateFormat;
-import java.util.HashSet;
 import java.util.Properties;
 import java.util.UUID;
 
@@ -150,19 +153,20 @@ public class AuthServerApplication {
 				Validator validator = new Validator();
 				validator.password = "54321";
 				String public_key = CipherUtils.getPublicKeyInBase64(pair);
-				AdminCommand command = AdminCommand.newSetPublicKey(public_key);
+				AdminCommand cmd = AdminCommand.newSetPublicKey(public_key);
 				adb.setUserPublicKey(public_key, validator);
 				{
-					String json = ContentEncrypter.encryptContent(command, Application.getGson());
-					adb.executeAdminCommand(json);
+					CommandRequest<AdminCommand> command = new CommandRequest<>();
+					command.commandEncoded = ContentEncrypter.encryptContent(cmd, Application.getGson());
+					//adb.executeAdminCommand(json);
 				}
 				{
-					String json = ContentEncrypter.encryptContent(command, Application.getGson());
-					adb.executeAdminCommand(json);
+					//String json = ContentEncrypter.encryptContent(command, Application.getGson());
+					//adb.executeAdminCommand(json);
 				}
 				{
-					String cmd = ContentEncrypter.encryptContent(command, adminCipher, Application.getGson());
-					adb.executeAdminCommand(cmd);
+					//String cmd = ContentEncrypter.encryptContent(command, adminCipher, Application.getGson());
+					//adb.executeAdminCommand(cmd);
 				}
 			}
 			{
@@ -179,12 +183,12 @@ public class AuthServerApplication {
 			{
 				AdminCommand command = AdminCommand.newAddUserField(Sets.newHashSet("name"));
 				String cmd = ContentEncrypter.encryptContent(command, Application.getGson());
-				adb.executeAdminCommand(cmd);
+				//adb.executeAdminCommand(cmd);
 			}
 			{
 				AdminCommand command = AdminCommand.newAddUserField(Sets.newHashSet("name"));
 				String cmd = ContentEncrypter.encryptContent(command, adminCipher, Application.getGson());
-				adb.executeAdminCommand(cmd);
+				//adb.executeAdminCommand(cmd);
 			}
 		}
 
@@ -238,7 +242,7 @@ public class AuthServerApplication {
 					appPrivateKey = CipherUtils.getPrivateKeyInBase64(pair);
 					adb.updateUser(user, validator);
 					user = adb.getUser(validator);
-					com.auth.interop.Application app = adb.getApplication(validator);
+					com.servers.interop.Application app = adb.getApplication(validator);
 					applicationCode = app.appCode;
 				}
 			}

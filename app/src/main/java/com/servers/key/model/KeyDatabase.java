@@ -12,14 +12,23 @@ import java.security.KeyPair;
 
 public interface KeyDatabase extends AutoCloseable {
 
+    class Service {
+        public String name;
+        public String code;
+        public String domain;
+        public String address;
+        public String publicKey;
+        public String privateKey;
+        public boolean inPanic;
+    }
+
     byte[] getAdminPublicKey();
     ErrorCode setAdminPublicKey(byte[] key);
-    byte[] getServicePublicKey();
-    byte[] getServicePrivateKey();
-    ErrorCode setServiceKeyPair(byte[] publicKey, byte[] privateKey);
+    byte[] getServicePrivateKey(String serviceCode);
+    Service getService(String serviceCode);
+    Error setService(Service service);
 
-    void panic();
-
+    void panic(String serviceCode);
     String getRandomPublicKeyName(GetRandomPublicKeyName.Encoding encoding);
     NamedPublicKey getServerPublicKey(String name);
 

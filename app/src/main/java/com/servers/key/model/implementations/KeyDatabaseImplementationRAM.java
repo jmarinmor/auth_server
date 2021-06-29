@@ -25,23 +25,27 @@ public class KeyDatabaseImplementationRAM implements KeyDatabase {
     private Map<String, byte[]> mEncryptedPrivateKey = new HashMap();
     private boolean mInPanic;
 
-    @Override
-    public void panic() {
-        mInPanic = true;
-        if (mAdminPublicKey != null) {
-            synchronized (mPrivateKey) {
-                synchronized (mEncryptedPrivateKey) {
-                    try {
-                        Crypter.Encrypter encrypter = Crypter.Encrypter.newFromRSAPublicKey(mAdminPublicKey);
+    private Map<String, Service> mServices = new HashMap();
 
-                        for (Map.Entry<String, byte[]> entry : mPrivateKey.entrySet()) {
-                            String sha256hex = DigestUtils.sha256Hex(entry.getKey());
-                            byte[] encrypted = encrypter.crypt(entry.getValue());
-                            mEncryptedPrivateKey.put(sha256hex, encrypted);
+    @Override
+    public void panic(String serviceCode) {
+        if (serviceCode == null) {
+            mInPanic = true;
+            if (mAdminPublicKey != null) {
+                synchronized (mPrivateKey) {
+                    synchronized (mEncryptedPrivateKey) {
+                        try {
+                            Crypter.Encrypter encrypter = Crypter.Encrypter.newFromRSAPublicKey(mAdminPublicKey);
+
+                            for (Map.Entry<String, byte[]> entry : mPrivateKey.entrySet()) {
+                                String sha256hex = DigestUtils.sha256Hex(entry.getKey());
+                                byte[] encrypted = encrypter.crypt(entry.getValue());
+                                mEncryptedPrivateKey.put(sha256hex, encrypted);
+                            }
+                            mPrivateKey.clear();
+                        } catch (Exception e) {
+                            e.printStackTrace();
                         }
-                        mPrivateKey.clear();
-                    } catch (Exception e) {
-                        e.printStackTrace();
                     }
                 }
             }

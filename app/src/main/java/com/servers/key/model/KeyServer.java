@@ -7,6 +7,7 @@ import com.servers.interop.requests.CommandRequest;
 import com.servers.interop.requests.CommandResponse;
 import com.google.gson.Gson;
 import com.jcore.crypto.Crypter;
+import com.servers.interop.requests.PanicCommandRequest;
 
 public class KeyServer {
     private KeyDatabase mDatabase;
@@ -35,7 +36,11 @@ public class KeyServer {
         return new CommandResponse<Integer>(ret);
     }
 
-    public CommandResponse<String> getServicePublicKey(CommandRequest<GetPublicKey> command) {
+    public static class GetPublicKeyRequest extends CommandRequest<GetPublicKey> {
+        public String code; seguir esta linea
+    }
+
+    public CommandResponse<String> getServicePublicKey(GetPublicKeyRequest command) {
         if (command == null)
             return new CommandResponse<String>(ErrorCode.INVALID_PARAMS);
         if (!command.containsCommand())
@@ -75,17 +80,25 @@ public class KeyServer {
         return new CommandResponse<Integer>(ret);
     }
 
-    public CommandResponse<Integer> panic(CommandRequest<Panic> command) {
+    public CommandResponse<Integer> panic(PanicCommandRequest command) {
         if (command == null)
             return new CommandResponse<Integer>(ErrorCode.INVALID_PARAMS);
         if (!command.containsCommand())
             return new CommandResponse<Integer>(ErrorCode.INVALID_PARAMS);
 
-        Panic cmd = command.getCommand(Panic.class, mDatabase.getServicePrivateKey(), mGson);
-        if (cmd == null)
-            return new CommandResponse<Integer>(ErrorCode.INVALID_PARAMS);
-        mDatabase.panic();
-        return new CommandResponse<Integer>(ErrorCode.SUCCEDED);
+        if (command.serviceCode == null) {
+            Panic cmd = command.getCommand(Panic.class, mDatabase.getAdminPublicKey(), mGson);
+            if (cmd == null)
+                return new CommandResponse<Integer>(ErrorCode.INVALID_PARAMS);
+            mDatabase.panic();
+            return new CommandResponse<Integer>(ErrorCode.SUCCEDED);
+        } else {
+            Panic cmd = command.getCommand(Panic.class, mDatabase.getServicePrivateKey(command.serviceCode), mGson);
+            if (cmd == null)
+                return new CommandResponse<Integer>(ErrorCode.INVALID_PARAMS);
+            mDatabase.panic(command.serviceCode);
+            return new CommandResponse<Integer>(ErrorCode.SUCCEDED);
+        }
     }
 
     public CommandResponse<String> getRandomPublicKeyName(CommandRequest<GetRandomPublicKeyName> command) {

@@ -16,8 +16,6 @@ public class KeyDatabaseImplementationRAM implements KeyDatabase {
     public final int MAX_KEY_COUNT = 2;
 
     private byte[] mAdminPublicKey;
-    private byte[] mServicePublicKey;
-    private byte[] mServicePrivateKey;
     private Random mRandom = new Random();
 
     private Map<String, byte[]> mPublicKey = new HashMap();
@@ -180,13 +178,42 @@ public class KeyDatabaseImplementationRAM implements KeyDatabase {
     }
 
     @Override
-    public byte[] getServicePublicKey() {
-        return mServicePublicKey;
+    public byte[] getServicePrivateKey(String serviceCode) {
+        Service s = getService(serviceCode);
+        if (s != null) {
+            byte[] ret = Crypter.base64StringToBytes(s.privateKey);
+            return ret;
+        }
+        return null;
     }
 
     @Override
-    public byte[] getServicePrivateKey() {
-        return mServicePrivateKey;
+    public Service getService(String serviceCode) {
+        if (serviceCode == null)
+            return null;
+        synchronized (mServices) {
+            Service s = mServices.get(serviceCode);
+            return s;
+        }
+    }
+
+    @Override
+    public ErrorCode setService(Service service) {
+        if (service == null || service.code == null)
+            return ErrorCode.INVALID_PARAMS;
+        synchronized (mServices) {
+            try {
+                if (service.publicKey != null)
+                    Crypter.Decrypter.newFromRSAPublicKey(Crypter.base64StringToBytes(service.publicKey));
+                if (service.privateKey != null)
+                    Crypter.Decrypter.newFromRSAPrivateKey(Crypter.base64StringToBytes(service.privateKey));
+                mServices.put(service.code, service);
+                return ErrorCode.SUCCEDED;
+            } catch (Exception e) {
+                e.printStackTrace();
+                return ErrorCode.INVALID_PARAMS;
+            }
+        }
     }
 
     @Override

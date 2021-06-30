@@ -26,7 +26,7 @@ public interface KeyDatabase extends AutoCloseable {
     ErrorCode setAdminPublicKey(byte[] key);
     byte[] getServicePrivateKey(String serviceCode);
     Service getService(String serviceCode);
-    Error setService(Service service);
+    ErrorCode setService(Service service);
 
     void panic(String serviceCode);
     String getRandomPublicKeyName(GetRandomPublicKeyName.Encoding encoding);

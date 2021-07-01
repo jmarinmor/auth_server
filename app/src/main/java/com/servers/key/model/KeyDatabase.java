@@ -26,11 +26,12 @@ public interface KeyDatabase extends AutoCloseable {
     ErrorCode setAdminPublicKey(byte[] key);
     byte[] getServicePrivateKey(String serviceCode);
     Service getService(String serviceCode);
+    String[] getServices();
     ErrorCode setService(Service service);
 
     void panic(String serviceCode);
     String getRandomPublicKeyName(GetRandomPublicKeyName.Encoding encoding);
-    NamedPublicKey getServerPublicKey(String name);
+    NamedPublicKey getPublicKey(String name);
 
     byte[] encrypt(byte[] stringToEncrypt, String keyName);
     byte[] decrypt(byte[] objectToDecrypt, String keyName);

@@ -97,7 +97,7 @@ public class AuthDatabaseImplementationRAM extends AuthDatabaseImplementation {
 
     @Override
     public ErrorCode panic() {
-        mKeyDatabase.panic();
+        mKeyDatabase.panic(null);
         return ErrorCode.SUCCEDED;
     }
 

@@ -88,7 +88,7 @@ public class KeyDatabaseImplementationRAM implements KeyDatabase {
     }
 
     @Override
-    public NamedPublicKey getServerPublicKey(String name) {
+    public NamedPublicKey getPublicKey(String name) {
         byte[] key = getPublicKeyBytes(name);
         if (key != null) {
             NamedPublicKey ret = new NamedPublicKey();
@@ -198,6 +198,15 @@ public class KeyDatabaseImplementationRAM implements KeyDatabase {
     }
 
     @Override
+    public String[] getServices() {
+        synchronized (mServices) {
+            Set<String> set = mServices.keySet();
+            String[] ret = set.toArray(new String[set.size()]);
+            return ret;
+        }
+    }
+
+    @Override
     public ErrorCode setService(Service service) {
         if (service == null || service.code == null)
             return ErrorCode.INVALID_PARAMS;
@@ -213,22 +222,6 @@ public class KeyDatabaseImplementationRAM implements KeyDatabase {
                 e.printStackTrace();
                 return ErrorCode.INVALID_PARAMS;
             }
-        }
-    }
-
-    @Override
-    public ErrorCode setServiceKeyPair(byte[] publicKey, byte[] privateKey) {
-        if (publicKey == null || privateKey == null)
-            return ErrorCode.INVALID_PARAMS;
-        try {
-            Crypter.Decrypter.newFromRSAPublicKey(publicKey);
-            Crypter.Decrypter.newFromRSAPrivateKey(privateKey);
-            mServicePublicKey = publicKey;
-            mServicePrivateKey = privateKey;
-            return ErrorCode.SUCCEDED;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ErrorCode.INVALID_PARAMS;
         }
     }
 

@@ -311,7 +311,7 @@ public class AuthServerApplication {
 
 		{
 			String pk_name = user_token.serverPublicKeyName;
-			NamedPublicKey pk = kdb.getServerPublicKey(pk_name);
+			NamedPublicKey pk = kdb.getPublicKey(pk_name);
 
 			Crypter.Decrypter decrypter1 = Crypter.Decrypter.newFromRSABase64PublicKey(pk.key);
 			Crypter.Decrypter decrypter2 = Crypter.Decrypter.newFromRSABase64PrivateKey(appPrivateKey);

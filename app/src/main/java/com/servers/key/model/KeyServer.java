@@ -21,6 +21,15 @@ public class KeyServer {
         return mDatabase;
     }
 
+    /**
+     * This function sets the admin public key. From here, the following requests for admin functionality
+     * must be encoded by the admin private key in order to be attended
+     * <p>
+     * Note: This is an admin function
+     * </p>
+     * @param command
+     * @return
+     */
     public CommandResponse<Integer> setAdminPublicKey(CommandRequest<SetPublicKey> command) {
         if (command == null)
             return new CommandResponse<Integer>(ErrorCode.INVALID_PARAMS);
@@ -36,21 +45,75 @@ public class KeyServer {
         return new CommandResponse<Integer>(ret);
     }
 
-    public static class GetPublicKeyRequest extends CommandRequest<GetPublicKey> {
-        public String code; seguir esta linea
+    public static class GetServicesRequest extends CommandRequest<GetServices> {
     }
 
-    public CommandResponse<String> getServicePublicKey(GetPublicKeyRequest command) {
+    /**
+     *
+     * <p>
+     * Note: This is an admin function
+     * </p>
+     * @param command
+     * @return
+     */
+    public CommandResponse<String[]> getServices(GetServicesRequest command) {
+        if (command == null)
+            return new CommandResponse<String[]>(ErrorCode.INVALID_PARAMS);
+        if (!command.containsCommand())
+            return new CommandResponse<String[]>(ErrorCode.INVALID_PARAMS);
+
+        GetServices cmd = command.getCommand(GetServices.class, mDatabase.getAdminPublicKey(), mGson);
+        if (cmd == null)
+            return new CommandResponse<String[]>(ErrorCode.INVALID_PARAMS);
+
+        String[] ret = mDatabase.getServices();
+        if (ret == null)
+            ret = new String[0];
+        return new CommandResponse<String[]>(ErrorCode.SUCCEDED, "", ret);
+    }
+
+    public static class GetServiceRequest extends CommandRequest<GetService> {
+    }
+
+    /**
+     *
+     * <p>
+     * Note: This is an admin function
+     * </p>
+     * @param command
+     * @return
+     */
+    public CommandResponse<KeyDatabase.Service> getService(GetServiceRequest command) {
+        if (command == null)
+            return new CommandResponse<KeyDatabase.Service>(ErrorCode.INVALID_PARAMS);
+        if (!command.containsCommand())
+            return new CommandResponse<KeyDatabase.Service>(ErrorCode.INVALID_PARAMS);
+
+        GetService cmd = command.getCommand(GetService.class, mDatabase.getAdminPublicKey(), mGson);
+        if (cmd == null)
+            return new CommandResponse<KeyDatabase.Service>(ErrorCode.INVALID_PARAMS);
+
+        KeyDatabase.Service ret = mDatabase.getService(cmd.code);
+        if (ret == null)
+            return new CommandResponse<KeyDatabase.Service>(ErrorCode.INVALID_PARAMS);
+        return new CommandResponse<KeyDatabase.Service>(ErrorCode.SUCCEDED, "", ret);
+    }
+
+    public static class GetServicePrivateKeyRequest extends CommandRequest<GetKey> {
+        public String serviceCode;
+    }
+
+    public CommandResponse<String> getServicePrivateKey(GetServicePrivateKeyRequest command) {
         if (command == null)
             return new CommandResponse<String>(ErrorCode.INVALID_PARAMS);
         if (!command.containsCommand())
             return new CommandResponse<String>(ErrorCode.INVALID_PARAMS);
 
-        GetPublicKey cmd = command.getCommand(GetPublicKey.class, mDatabase.getAdminPublicKey(), mGson);
+        GetKey cmd = command.getCommand(GetKey.class, mDatabase.getServicePrivateKey(command.serviceCode), mGson);
         if (cmd == null)
             return new CommandResponse<String>(ErrorCode.INVALID_PARAMS);
 
-        byte[] key = mDatabase.getServicePublicKey();
+        byte[] key = mDatabase.getServicePrivateKey(command.serviceCode);
         if (key == null)
             return new CommandResponse<String>(ErrorCode.INVALID_PARAMS);
 
@@ -58,28 +121,12 @@ public class KeyServer {
         return new CommandResponse<String>(ErrorCode.SUCCEDED, "", ret);
     }
 
-    public CommandResponse<Integer> setServiceKeyPair(CommandRequest<SetKeyPair> command) {
-        if (command == null)
-            return new CommandResponse<Integer>(ErrorCode.INVALID_PARAMS);
-        if (!command.containsCommand())
-            return new CommandResponse<Integer>(ErrorCode.INVALID_PARAMS);
-
-        SetKeyPair cmd = command.getCommand(SetKeyPair.class, mDatabase.getAdminPublicKey(), mGson);
-        if (cmd == null || cmd.publicKey == null)
-            return new CommandResponse<Integer>(ErrorCode.INVALID_PARAMS);
-
-        byte[] publicKey = Crypter.base64StringToBytes(cmd.publicKey);
-        if (publicKey == null)
-            return new CommandResponse<Integer>(ErrorCode.INVALID_PARAMS);
-
-        byte[] privateKey = Crypter.base64StringToBytes(cmd.privateKey);
-        if (privateKey == null)
-            return new CommandResponse<Integer>(ErrorCode.INVALID_PARAMS);
-
-        ErrorCode ret = mDatabase.setServiceKeyPair(publicKey, privateKey);
-        return new CommandResponse<Integer>(ret);
-    }
-
+    /**
+     * This function can be called from the admin, or from ona of the services. It depends on the
+     * command.serviceCode value. If is null, then is an admin command.
+     * @param command
+     * @return
+     */
     public CommandResponse<Integer> panic(PanicCommandRequest command) {
         if (command == null)
             return new CommandResponse<Integer>(ErrorCode.INVALID_PARAMS);
@@ -90,7 +137,7 @@ public class KeyServer {
             Panic cmd = command.getCommand(Panic.class, mDatabase.getAdminPublicKey(), mGson);
             if (cmd == null)
                 return new CommandResponse<Integer>(ErrorCode.INVALID_PARAMS);
-            mDatabase.panic();
+            mDatabase.panic(null);
             return new CommandResponse<Integer>(ErrorCode.SUCCEDED);
         } else {
             Panic cmd = command.getCommand(Panic.class, mDatabase.getServicePrivateKey(command.serviceCode), mGson);
@@ -101,39 +148,51 @@ public class KeyServer {
         }
     }
 
-    public CommandResponse<String> getRandomPublicKeyName(CommandRequest<GetRandomPublicKeyName> command) {
+    public static class GetRandomPublicKeyNameRequest extends CommandRequest<GetRandomPublicKeyName> {
+        public String serviceCode;
+    }
+
+    public CommandResponse<String> getRandomPublicKeyName(GetRandomPublicKeyNameRequest command) {
         if (command == null)
             return new CommandResponse<String>(ErrorCode.INVALID_PARAMS);
         if (!command.containsCommand())
             return new CommandResponse<String>(ErrorCode.INVALID_PARAMS);
 
-        GetRandomPublicKeyName cmd = command.getCommand(GetRandomPublicKeyName.class, mDatabase.getServicePrivateKey(), mGson);
+        GetRandomPublicKeyName cmd = command.getCommand(GetRandomPublicKeyName.class, mDatabase.getServicePrivateKey(command.serviceCode), mGson);
         if (cmd == null)
             return null;
         String ret = mDatabase.getRandomPublicKeyName(cmd.encoding);
         return new CommandResponse<String>(ErrorCode.SUCCEDED, "", ret);
     }
 
-    public CommandResponse<NamedPublicKey> getServerPublicKey(CommandRequest<GetServerPublicKey> command) {
+    public static class GetPublicKeyRequest extends CommandRequest<GetKey> {
+        public String serviceCode;
+    }
+
+    public CommandResponse<NamedPublicKey> getPublicKey(GetPublicKeyRequest command) {
         if (command == null)
             return new CommandResponse<NamedPublicKey>(ErrorCode.INVALID_PARAMS);
         if (!command.containsCommand())
             return new CommandResponse<NamedPublicKey>(ErrorCode.INVALID_PARAMS);
 
-        GetServerPublicKey cmd = command.getCommand(GetServerPublicKey.class, mDatabase.getServicePrivateKey(), mGson);
+        GetKey cmd = command.getCommand(GetKey.class, mDatabase.getServicePrivateKey(command.serviceCode), mGson);
         if (cmd == null)
             return null;
-        NamedPublicKey ret = mDatabase.getServerPublicKey(cmd.keyName);
+        NamedPublicKey ret = mDatabase.getPublicKey(cmd.keyName);
         return new CommandResponse<NamedPublicKey>(ErrorCode.SUCCEDED, "", ret);
     }
 
-    public CommandResponse<String> encrypt(CommandRequest<EncryptCommand> command) {
+    public static class EncryptCommandRequest extends CommandRequest<EncryptCommand> {
+        public String serviceCode;
+    }
+
+    public CommandResponse<String> encrypt(EncryptCommandRequest command) {
         if (command == null)
             return new CommandResponse<String>(ErrorCode.INVALID_PARAMS);
         if (!command.containsCommand())
             return new CommandResponse<String>(ErrorCode.INVALID_PARAMS);
 
-        EncryptCommand cmd = command.getCommand(EncryptCommand.class, mDatabase.getServicePrivateKey(), mGson);
+        EncryptCommand cmd = command.getCommand(EncryptCommand.class, mDatabase.getServicePrivateKey(command.serviceCode), mGson);
         if (cmd == null || cmd.content == null || cmd.keyName == null)
             return new CommandResponse<String>(ErrorCode.INVALID_PARAMS);
         byte[] source = Crypter.base64StringToBytes(cmd.content);
@@ -144,13 +203,17 @@ public class KeyServer {
         return new CommandResponse<String>(ErrorCode.SUCCEDED, "", ret);
     }
 
-    public CommandResponse<String> decrypt(CommandRequest<DecryptCommand> command) {
+    public static class DecryptCommandRequest extends CommandRequest<DecryptCommand> {
+        public String serviceCode;
+    }
+
+    public CommandResponse<String> decrypt(DecryptCommandRequest command) {
         if (command == null)
             return new CommandResponse<String>(ErrorCode.INVALID_PARAMS);
         if (!command.containsCommand())
             return new CommandResponse<String>(ErrorCode.INVALID_PARAMS);
 
-        DecryptCommand cmd = command.getCommand(DecryptCommand.class, mDatabase.getServicePrivateKey(), mGson);
+        DecryptCommand cmd = command.getCommand(DecryptCommand.class, mDatabase.getServicePrivateKey(command.serviceCode), mGson);
         if (cmd == null || cmd.content == null || cmd.keyName == null)
             return new CommandResponse<String>(ErrorCode.INVALID_PARAMS);
         byte[] source = Crypter.base64StringToBytes(cmd.content);

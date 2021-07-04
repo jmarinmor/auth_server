@@ -4,7 +4,6 @@ import com.servers.interop.*;
 import com.servers.interop.Application;
 import com.servers.interop.commands.GetUsersProgression;
 import com.servers.interop.commands.SetPublicKey;
-import com.servers.interop.requests.CommandRequest;
 
 import java.util.Map;
 import java.util.Set;

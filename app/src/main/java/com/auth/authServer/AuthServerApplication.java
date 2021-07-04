@@ -10,7 +10,6 @@ import com.servers.interop.contents.ContentEncrypter;
 import com.servers.interop.contents.EncryptedContent;
 import com.servers.key.model.KeyDatabase;
 import com.servers.key.model.implementations.KeyDatabaseImplementationRAM;
-import com.servers.interop.requests.CommandRequest;
 import com.google.common.collect.Sets;
 import com.google.gson.Gson;
 import com.jcore.crypto.CipherUtils;

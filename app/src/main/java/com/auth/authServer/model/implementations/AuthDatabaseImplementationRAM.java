@@ -5,7 +5,6 @@ import com.servers.interop.commands.GetRandomPublicKeyName;
 import com.servers.interop.commands.GetUsersProgression;
 import com.servers.interop.commands.SetPublicKey;
 import com.servers.interop.contents.AlterUserField;
-import com.servers.interop.requests.CommandRequest;
 import com.jcore.utils.TimeUtils;
 import com.servers.key.model.KeyDatabase;
 import org.apache.commons.codec.digest.DigestUtils;

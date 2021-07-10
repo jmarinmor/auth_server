@@ -8,8 +8,6 @@ import com.servers.interop.contents.AdminCommand;
 import com.servers.interop.contents.AlterUserField;
 import com.servers.interop.contents.ContentEncrypter;
 import com.servers.interop.contents.EncryptedContent;
-import com.servers.key.model.KeyDatabase;
-import com.servers.key.model.implementations.KeyDatabaseImplementationRAM;
 import com.google.common.collect.Sets;
 import com.google.gson.Gson;
 import com.jcore.crypto.CipherUtils;

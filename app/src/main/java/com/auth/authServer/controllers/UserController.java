@@ -2,8 +2,6 @@ package com.auth.authServer.controllers;
 
 import com.auth.authServer.model.AuthDatabase;
 import com.auth.authServer.model.Application;
-import com.servers.interop.Captcha;
-import com.servers.interop.Validator;
 import com.servers.interop.requests.*;
 import com.servers.key.model.KeyDatabase;
 import org.springframework.lang.NonNull;

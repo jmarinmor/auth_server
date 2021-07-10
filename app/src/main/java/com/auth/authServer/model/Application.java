@@ -1,9 +1,6 @@
 package com.auth.authServer.model;
 
 import com.auth.authServer.model.implementations.AuthDatabaseImplementationRAM;
-import com.servers.key.model.KeyDatabase;
-import com.servers.key.model.KeyServer;
-import com.servers.key.model.implementations.KeyDatabaseImplementationRAM;
 import com.google.gson.Gson;
 import com.jcore.database.sql.ConnectionPool;
 

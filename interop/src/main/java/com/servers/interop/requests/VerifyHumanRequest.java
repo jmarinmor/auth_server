@@ -1,6 +1,6 @@
 package com.servers.interop.requests;
 
-import com.servers.interop.Inquiry;
+import com.jcore.servers.Inquiry;
 
 public class VerifyHumanRequest {
     public enum Reason {

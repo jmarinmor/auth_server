@@ -1,8 +1,8 @@
 package com.servers.interop.requests;
 
+import com.jcore.servers.Inquiry;
+import com.jcore.servers.Token;
 import com.servers.interop.ErrorCode;
-import com.servers.interop.Inquiry;
-import com.servers.interop.Token;
 
 public class RegistrationRequest {
     public enum PreferedRagistrationMode {

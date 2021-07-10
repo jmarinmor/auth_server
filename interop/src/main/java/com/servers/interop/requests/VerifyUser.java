@@ -1,6 +1,6 @@
 package com.servers.interop.requests;
 
-import com.servers.interop.Validator;
+import com.jcore.servers.Validator;
 
 import java.util.UUID;
 
